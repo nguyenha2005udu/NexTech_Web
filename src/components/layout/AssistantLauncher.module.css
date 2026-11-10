@@ -1,0 +1,21 @@
+.launcher {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid var(--c-primary);
+  background: var(--c-primary);
+  color: #fff;
+  box-shadow: 0 3px 12px rgba(15, 21, 38, 0.16);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.launcher:hover {
+  background: var(--c-primary-text);
+  transform: translateY(-2px);
+}

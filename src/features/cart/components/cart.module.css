@@ -1,0 +1,43 @@
+.quantityRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border);
+}
+
+.quantityLabel {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 24px;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.stepButton:global(.ant-btn) {
+  width: 43px;
+  padding: 0;
+  font-size: 16px;
+}
+
+.quantity {
+  min-width: 28px;
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: var(--c-chip);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  color: var(--c-chip-text);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

@@ -1,0 +1,85 @@
+:root {
+  --c-ink: #1a1a2e;
+  --c-ink-muted: #4b5565;
+  --c-primary: #c2410c;
+  --c-primary-text: #9a3412;
+  --c-primary-soft: #fff1e9;
+  --c-primary-soft-border: #f8cdb9;
+  --c-price: #b51e2a;
+  --c-rating: #824313;
+  --c-border: #e5e8ef;
+  --c-border-input: #d3d8e2;
+  --c-surface: #ffffff;
+  --c-surface-muted: #eef0f5;
+  --c-chip: #f1f3f7;
+  --c-chip-text: #344054;
+  --c-page: #f7f8fa;
+  --c-header: #1a1a2e;
+  --c-accent-soft: #ffb082; /* link "Trợ lý AI", badge hero */
+  --c-accent-text: #ffad80; /* chữ nhấn trên nền tối: "thế hệ mới", "thông minh hơn", hotline */
+
+  --container: 1240px;
+  --container-narrow: 1136px;
+  --shadow-card: 0 4px 8px rgba(26, 26, 46, 0.07);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-body), system-ui, sans-serif;
+  color: var(--c-ink);
+  background: var(--c-page);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-family: var(--font-heading), var(--font-body), sans-serif;
+  color: var(--c-ink);
+}
+
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Ô nhập antd đã có focus ring riêng — chỉ vẽ outline cho link/nút/tab. */
+:where(a, button, [role="tab"], [tabindex]):focus-visible {
+  outline: 2px solid var(--c-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
