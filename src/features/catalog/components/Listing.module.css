@@ -1,0 +1,260 @@
+.page {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 30px 16px 44px;
+  box-sizing: content-box;
+}
+
+.breadcrumbs {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.breadcrumbs a:hover {
+  color: var(--c-primary-text);
+  text-decoration: underline;
+}
+
+.heading {
+  padding-top: 23px;
+}
+
+.title {
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 50px;
+  letter-spacing: -1.1px;
+}
+
+.description {
+  padding-top: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--c-ink-muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 228px minmax(0, 1fr);
+  align-items: start;
+  gap: 26px;
+  margin-top: 25px;
+}
+
+/* ===== Bộ lọc ===== */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+  padding: 18px 14px;
+  border: 1px solid var(--c-border);
+  border-radius: 13px;
+  background: var(--c-surface);
+}
+
+.sidebarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 6px;
+}
+
+.sidebarTitle {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 21px;
+  letter-spacing: -0.5px;
+}
+
+.clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  color: var(--c-primary-text);
+  cursor: pointer;
+}
+
+.clear:hover {
+  text-decoration: underline;
+}
+
+.group,
+.fieldsetReset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.group + .group {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border);
+}
+
+.groupTitle {
+  float: left;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 0;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 24px;
+  color: var(--c-ink);
+}
+
+.group > .groupTitle {
+  margin-bottom: 0;
+}
+
+.checkbox:global(.ant-checkbox-wrapper) {
+  margin-inline-start: 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.priceRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  clear: both;
+}
+
+.priceInput:global(.ant-input-number) {
+  width: 100%;
+  height: 37px;
+  padding-inline: 0;
+  font-size: 13px;
+}
+
+.priceInput :global(.ant-input-number-input) {
+  height: 35px;
+  padding-inline: 8px;
+}
+
+.applyButton:global(.ant-btn) {
+  margin-top: 0;
+}
+
+/* ===== Thanh công cụ ===== */
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 43px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: var(--c-chip);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  color: var(--c-chip-text);
+  cursor: pointer;
+}
+
+.chipAccent {
+  background: var(--c-primary-soft);
+  color: var(--c-primary-text);
+}
+
+.chip:hover {
+  filter: brightness(0.96);
+}
+
+.sort:global(.ant-select) {
+  min-width: 179px;
+  height: 43px;
+  font-weight: 800;
+}
+
+.sortLabel {
+  font-weight: 800;
+  color: var(--c-ink);
+}
+
+.count {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+/* ===== Trạng thái trống (01.04) ===== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 23px;
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  background: var(--c-surface);
+  text-align: center;
+}
+
+.emptyTitle {
+  padding-bottom: 13px;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 31px;
+  letter-spacing: -0.7px;
+}
+
+.emptyText {
+  margin-top: -14px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--c-ink-muted);
+}
+
+.emptyButton:global(.ant-btn) {
+  min-width: 104px;
+}
+
+@media (max-width: 991px) {
+  .title {
+    font-size: 30px;
+    line-height: 38px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .toolbar {
+    flex-wrap: wrap;
+  }
+}

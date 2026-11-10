@@ -1,0 +1,82 @@
+/* Biến thể trang chủ (01.01): ô trắng + nút cam liền khối */
+.hero {
+  display: flex;
+  width: 100%;
+  max-width: 497px;
+  height: 44px;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.heroInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0 18px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--c-ink);
+  background: transparent;
+}
+
+.heroInput::placeholder,
+.compactInput::placeholder {
+  color: var(--c-ink-muted);
+}
+
+.heroInput:focus,
+.compactInput:focus {
+  outline: none;
+}
+
+.hero:focus-within,
+.compact:focus-within {
+  box-shadow: 0 0 0 3px rgba(242, 109, 33, 0.45);
+}
+
+.heroButton {
+  display: grid;
+  place-items: center;
+  width: 57px;
+  border: 0;
+  background: var(--c-primary);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.heroButton:hover {
+  background: var(--c-primary-text);
+}
+
+/* Biến thể trang trong (01.02–01.05): icon kính lúp bên trái */
+.compact {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 555px;
+  height: 44px;
+  padding: 0 15px;
+  background: #fff;
+  border-radius: 9px;
+}
+
+.compactIcon {
+  flex: none;
+  color: var(--c-ink-muted);
+}
+
+.compactInput {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  font: inherit;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--c-ink);
+  background: transparent;
+}
