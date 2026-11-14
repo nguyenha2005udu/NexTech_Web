@@ -1,0 +1,30 @@
+<svg width="576" height="900" viewBox="0 0 576 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_64_32308)">
+<path d="M576 0H0V900H576V0Z" fill="url(#paint0_linear_64_32308)"/>
+<path d="M576 0H0V900H576V0Z" fill="url(#paint1_radial_64_32308)"/>
+<path d="M328 450C328 472.091 310.091 490 288 490C265.909 490 248 472.091 248 450C248 427.909 265.909 410 288 410C310.091 410 328 427.909 328 450Z" stroke="#C8D2F0" stroke-opacity="0.13"/>
+<path d="M376 450C376 498.601 336.601 538 288 538C239.399 538 200 498.601 200 450C200 401.399 239.399 362 288 362C336.601 362 376 401.399 376 450Z" stroke="#C8D2F0" stroke-opacity="0.119"/>
+<path d="M424 450C424 525.111 363.111 586 288 586C212.889 586 152 525.111 152 450C152 374.889 212.889 314 288 314C363.111 314 424 374.889 424 450Z" stroke="#C8D2F0" stroke-opacity="0.108"/>
+<path d="M472 450C472 551.62 389.62 634 288 634C186.38 634 104 551.62 104 450C104 348.38 186.38 266 288 266C389.62 266 472 348.38 472 450Z" stroke="#C8D2F0" stroke-opacity="0.097"/>
+<path d="M520 450C520 578.13 416.13 682 288 682C159.87 682 56 578.13 56 450C56 321.87 159.87 218 288 218C416.13 218 520 321.87 520 450Z" stroke="#C8D2F0" stroke-opacity="0.086"/>
+<path d="M568 450C568 604.64 442.64 730 288 730C133.36 730 8 604.64 8 450C8 295.36 133.36 170 288 170C442.64 170 568 295.36 568 450Z" stroke="#C8D2F0" stroke-opacity="0.075"/>
+<path d="M616 450C616 631.149 469.149 778 288 778C106.851 778 -40 631.149 -40 450C-40 268.851 106.851 122 288 122C469.149 122 616 268.851 616 450Z" stroke="#C8D2F0" stroke-opacity="0.064"/>
+<path d="M664 450C664 657.659 495.659 826 288 826C80.3409 826 -88 657.659 -88 450C-88 242.341 80.3409 74 288 74C495.659 74 664 242.341 664 450Z" stroke="#C8D2F0" stroke-opacity="0.053"/>
+<path d="M712 450C712 684.169 522.169 874 288 874C53.8313 874 -136 684.169 -136 450C-136 215.831 53.8313 26 288 26C522.169 26 712 215.831 712 450Z" stroke="#C8D2F0" stroke-opacity="0.042"/>
+<path d="M760 450C760 710.678 548.678 922 288 922C27.3216 922 -184 710.678 -184 450C-184 189.322 27.3216 -22 288 -22C548.678 -22 760 189.322 760 450Z" stroke="#C8D2F0" stroke-opacity="0.031"/>
+</g>
+<defs>
+<linearGradient id="paint0_linear_64_32308" x1="0" y1="0" x2="817.253" y2="523.042" gradientUnits="userSpaceOnUse">
+<stop stop-color="#1B1B2E"/>
+<stop offset="0.56" stop-color="#19223E"/>
+<stop offset="1" stop-color="#111626"/>
+</linearGradient>
+<radialGradient id="paint1_radial_64_32308" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(495.36 162) scale(362.88 567)">
+<stop stop-color="#A0523B" stop-opacity="0.48"/>
+<stop offset="1" stop-color="#A0523B" stop-opacity="0"/>
+</radialGradient>
+<clipPath id="clip0_64_32308">
+<rect width="576" height="900" fill="white"/>
+</clipPath>
+</defs>
+</svg>
