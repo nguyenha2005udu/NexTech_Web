@@ -1,0 +1,265 @@
+/* Khung nội dung bên phải — Figma 05.x (cột 434px) */
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 21px;
+  color: var(--c-ink-muted);
+}
+
+.back:hover {
+  color: var(--c-primary-text);
+}
+
+.heading {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  padding-top: 27px;
+}
+
+.title {
+  font-size: 31px;
+  font-weight: 700;
+  line-height: 37px;
+  letter-spacing: -0.8px;
+}
+
+.title:focus {
+  outline: none;
+}
+
+.subtitle {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--c-ink-muted);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+  padding-top: 30px;
+}
+
+/* ===== Chỉ báo bước ===== */
+.steps {
+  display: flex;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.stepDot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--c-surface-muted);
+  color: var(--c-ink-muted);
+}
+
+.stepActive {
+  color: var(--c-primary-text);
+}
+
+.stepActive .stepDot {
+  background: var(--c-primary);
+  color: #fff;
+}
+
+/* ===== Form ===== */
+.form :global(.ant-form-item) {
+  margin-bottom: 0;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 17px;
+}
+
+.form :global(.ant-form-item-label > label) {
+  font-weight: 700;
+  line-height: 23px;
+  height: auto;
+}
+
+.form :global(.ant-input-affix-wrapper-lg),
+.form :global(.ant-input-lg) {
+  background: #fcfcfd;
+  border-radius: 13px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  line-height: 23px;
+}
+
+.form :global(.ant-input-prefix) {
+  margin-inline-end: 9px;
+  color: var(--c-ink);
+}
+
+.form :global(.ant-input-password-icon) {
+  display: inline-grid;
+  color: var(--c-ink-muted);
+}
+
+.otpInput:global(.ant-input) {
+  letter-spacing: 0.5em;
+  font-variant-numeric: tabular-nums;
+}
+
+.hint {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.inlineLinks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.forgot {
+  align-self: flex-end;
+  margin-top: -6px;
+}
+
+.linkButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 800;
+  color: var(--c-primary-text);
+  cursor: pointer;
+}
+
+.linkButton:hover {
+  text-decoration: underline;
+}
+
+.linkButton:disabled {
+  color: var(--c-ink-muted);
+  font-weight: 400;
+  cursor: default;
+  text-decoration: none;
+}
+
+.link {
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 21px;
+  color: var(--c-primary-text);
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.submit:global(.ant-btn) {
+  height: 49px;
+  border-radius: 13px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* ===== Đăng nhập mạng xã hội ===== */
+.social {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 15px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 3px;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--c-ink-muted);
+}
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--c-border);
+}
+
+.socialButton:global(.ant-btn) {
+  height: 41px;
+  border-radius: 10px;
+  border-color: #dfe3ea;
+  font-weight: 700;
+}
+
+/* ===== Chân form ===== */
+.footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--c-border);
+  text-align: center;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--c-ink-muted);
+}
+
+/* ===== 403 ===== */
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 15px;
+  border: 1px solid #f5ddbb;
+  border-radius: 9px;
+  background: #fef4e6;
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--c-rating);
+}
+
+.notice svg {
+  flex: none;
+}
+
+.buttonLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 49px;
+  border-radius: 13px;
+  background: var(--c-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 24px;
+  transition: background-color 0.15s ease;
+}
+
+.buttonLink:hover {
+  background: var(--c-primary-text);
+  color: #fff;
+}
