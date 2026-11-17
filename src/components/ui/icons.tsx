@@ -187,6 +187,25 @@ export const CloseIcon = createIcon("CloseIcon", {
   paths: ["M5 5L10 10M10 10L15 15M10 10L15 5M10 10L5 15"],
 });
 
+// Icon bổ sung cho trợ lý AI (Figma 02.xx) — nét 1.4167 như bộ icon 20px.
+export const PlusIcon = createIcon("PlusIcon", {
+  box: 20,
+  stroke: S20,
+  paths: ["M10 4.16667V15.8333M4.16667 10H15.8333"],
+});
+
+export const ClockIcon = createIcon("ClockIcon", {
+  box: 20,
+  stroke: S20,
+  paths: ["M10 5.83333V10L12.5 11.6667M18.3333 10C18.3333 14.6024 14.6024 18.3333 10 18.3333C5.39763 18.3333 1.66667 14.6024 1.66667 10C1.66667 5.39763 5.39763 1.66667 10 1.66667C14.6024 1.66667 18.3333 5.39763 18.3333 10Z"],
+});
+
+export const MessageIcon = createIcon("MessageIcon", {
+  box: 20,
+  stroke: S20,
+  paths: ["M17.5 12.5C17.5 12.942 17.3244 13.366 17.0118 13.6785C16.6993 13.9911 16.2754 14.1667 15.8333 14.1667H5.83333L2.5 17.5V4.16667C2.5 3.72464 2.67559 3.30072 2.98816 2.98816C3.30072 2.67559 3.72464 2.5 4.16667 2.5H15.8333C16.2754 2.5 16.6993 2.67559 17.0118 2.98816C17.3244 3.30072 17.5 3.72464 17.5 4.16667V12.5Z"],
+});
+
 export const CheckIcon = createIcon("CheckIcon", {
   box: 12,
   stroke: 0.85,
