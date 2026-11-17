@@ -5,6 +5,8 @@ export const routes = {
   category: (slug: string) => `/categories/${slug}`,
   product: (slug: string) => `/products/${slug}`,
   assistant: "/assistant",
+  assistantHistory: "/assistant/history",
+  assistantConversation: (id: string) => `/assistant/${id}`,
   cart: "/cart",
   notifications: "/account/notifications",
   priceAlerts: "/account/price-alerts",

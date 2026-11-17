@@ -7,5 +7,6 @@ export { ProductGrid } from "./components/ProductGrid";
 export { EmptyResult } from "./components/EmptyResult";
 export { CategoryProductBrowser } from "./components/CategoryProductBrowser";
 export { Breadcrumbs } from "./components/Breadcrumbs";
+export type { Crumb } from "./components/Breadcrumbs";
 export { Rating } from "./components/Rating";
 export { ProductDetailView } from "./components/ProductDetailView";
