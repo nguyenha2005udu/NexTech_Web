@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Breadcrumbs, type Crumb } from "@/features/catalog";
+import { Breadcrumbs, type Crumb } from "@/components/ui/Breadcrumbs";
 import styles from "./Assistant.module.css";
 
 // Khung trang trợ lý AI: breadcrumb + sidebar + nội dung (Figma 02.01–02.05).

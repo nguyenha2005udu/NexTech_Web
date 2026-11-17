@@ -1,0 +1,10 @@
+.breadcrumbs {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.breadcrumbs a:hover {
+  color: var(--c-primary-text);
+  text-decoration: underline;
+}
