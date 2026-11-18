@@ -15,7 +15,7 @@
 5. **Chỉ dùng `useAppSelector` / `useAppDispatch`.** Không import `useSelector`/`useDispatch` trực tiếp.
 6. **Không tạo Redux store singleton.** Dùng `makeStore()` + `StoreProvider` (mỗi request một store).
 7. **Bảo mật nhiều lớp:** Middleware → Page → Server Action/Route Handler → tầng dữ liệu. Ẩn nút ở UI **không phải** bảo mật.
-8. **Mọi Server Action:** kiểm tra `auth()` + quyền `can()` + validate input bằng `zod`.
+8. **Mọi Server Action:** kiểm tra phiên `getSessionUser()` + quyền `can()` (gộp sẵn trong `requirePermission()`) + validate input bằng `zod`.
 9. **Đo trước, tối ưu sau.** Không rắc `useMemo/useCallback/React.memo` khắp nơi khi chưa có số liệu Profiler.
 10. **Test hành vi, không test cài đặt.** RTL + `getByRole` trước tiên. Coverage module được giao ≥ 70%.
 11. **Không commit secret.** `.env.local` nằm trong `.gitignore`; secret không bao giờ có tiền tố `NEXT_PUBLIC_`.
@@ -59,7 +59,8 @@
 2. **Giỏ hàng của khách** lưu ở client (localStorage). Sau khi đăng nhập thì gộp lên server. **Đặt hàng bắt buộc đăng nhập.**
 3. **Hội thoại AI của khách** lưu theo phiên trình duyệt (sessionStorage + `conversationId` do backend cấp). Sau khi đăng nhập, hỏi người dùng có muốn lưu không, đồng ý thì gắn vào tài khoản (FDD 3.3).
 4. **Thông báo**: polling 30s bằng RTK Query; nâng lên SSE nếu backend hỗ trợ.
-5. **Vai trò:** `guest` · `user` · `admin`. **Trạng thái tài khoản:** `active` · `locked` (FDD 8.4.4).
+5. **Vai trò:** `guest` · `user` · `admin`. **Trạng thái tài khoản:** backend lưu `is_active` (`true` = hoạt động, `false` = bị khoá, FDD 8.4.4); web không đọc trường này, backend tự chặn tài khoản bị khoá.
+6. **Phiên đăng nhập do backend giữ** (identity-service + API Gateway): 2 cookie httpOnly `access_token` (15 phút) và `refresh_token` (7 ngày, xoay vòng mỗi lần làm mới). Web **không** dùng Auth.js, không tự phát token. Hợp đồng: `Backend_NexTech/project-knowledge/design/IDENTITY/NT.IDENTITY/API_Spec.md`. Chi tiết ở mục 10.1.
 
 ---
 
@@ -72,12 +73,12 @@
 | State nghiệp vụ | **Redux Toolkit** (+ RTK Query) | `react-redux` |
 | State UI phụ | **Zustand** | hội thoại AI theo phiên, launcher, drawer, modal |
 | State ít đổi | Context API (đã tách nhỏ + `useMemo`) | theme, locale |
-| Auth | **Auth.js v5** (`next-auth@beta`) | GitHub OAuth + Credentials |
+| Auth | **Phiên do backend cấp** (cookie httpOnly qua API Gateway) | Không dùng Auth.js. Web gọi API identity qua `lib/api/http.ts` — mục 10.1 |
 | Validate | `zod` | Server Action, form |
 | Thanh toán | **COD** + **PayOS/VietQR** (chuyển hướng sang PayOS rồi quay về `returnUrl`) | Webhook xác nhận do backend xử lý |
 | Trợ lý AI | Route Handler `app/api/assistant/chat` stream câu trả lời (proxy tới AI backend) | Khoá API chỉ ở server |
-| Auth providers | Credentials (email) · Google · Facebook | FDD 1.1.2–1.1.4 |
-| Băm mật khẩu | `bcrypt` / `argon2` | chỉ chạy ở Node runtime |
+| Đăng nhập | Email/mật khẩu · Google · Facebook | FDD 1.1.2–1.1.4. Backend chạy cả OAuth |
+| Băm mật khẩu | Backend lo | Web không băm, không giữ mật khẩu |
 | Virtualization | `react-window` (hoặc `@tanstack/react-virtual`) | list > ~200 item |
 | Test | **Jest** + `@testing-library/react` + `jest-dom` + `user-event` | cấu hình qua `next/jest` (hoặc `ts-jest` như slide); mock mạng bằng `msw` khi cần |
 | E2E (tuỳ chọn) | Playwright | chỉ cho luồng sống còn: đăng nhập, đặt hàng |
@@ -147,8 +148,7 @@ src/
 │  │  ├─ layout.tsx
 │  │  ├─ login/page.tsx                     # 1.1.2–1.1.4 Email, Google, Facebook
 │  │  ├─ register/page.tsx                  # 1.1.1
-│  │  ├─ forgot-password/page.tsx           # 1.1.5 Gửi email đặt lại
-│  │  └─ reset-password/page.tsx            # 1.1.5 Đặt mật khẩu mới (?token=)
+│  │  └─ forgot-password/page.tsx           # 1.1.5 Email → OTP → mật khẩu mới (3 bước trong 1 trang)
 │  │
 │  ├─ admin/                                # Khu quản trị — layout: AdminSidebar      🔒 admin
 │  │  ├─ layout.tsx
@@ -161,12 +161,11 @@ src/
 │  │  └─ users/       page · [id]/page              # 8.4   Đổi role, đổi trạng thái tài khoản
 │  │
 │  └─ api/
-│     ├─ auth/[...nextauth]/route.ts        # 1.1   Auth.js
 │     └─ assistant/chat/route.ts            # 3.1   Proxy streaming tới AI backend (giữ khoá API ở server)
 │
 ├─ features/                                # ⇄ 8 nhánh FDD
 │  ├─ auth/                 # 1.1  LoginForm, RegisterForm, SocialLoginButtons (Google/Facebook),
-│  │                        #      ForgotPasswordForm, ResetPasswordForm, LogoutButton · actions.ts · schemas.ts
+│  │                        #      ForgotPasswordFlow, ResetPasswordForm (bước 3), LogoutButton · actions.ts · schemas.ts
 │  ├─ profile/              # 1.2.1 ProfileForm, AvatarUpload, ShoppingPreferences · actions.ts
 │  ├─ addresses/            # 1.2.2 AddressList, AddressForm, AddressPicker (dùng lại ở checkout) · actions.ts
 │  ├─ catalog/              # 2    HomeSections, CategoryGrid, ProductGrid, ProductCard, SearchBar,
@@ -202,20 +201,21 @@ src/
 │  ├─ ui/                   # Button, Input, Select, Modal, Drawer, Tabs, Accordion, DataTable, Pagination,
 │  │                        # Badge, Skeleton, EmptyState, ConfirmDialog… (không biết nghiệp vụ)
 │  ├─ layout/               # StorefrontHeader, Footer, UserMenu, AssistantLauncher, AccountSidebar, AdminSidebar
-│  └─ providers/            # StoreProvider (makeStore), SessionProvider, ThemeProvider, AppProviders
+│  └─ providers/            # StoreProvider (makeStore), ThemeProvider, AppProviders
 ├─ hooks/                   # useDebounce, usePagination<T>, useMediaQuery
 ├─ lib/
-│  ├─ api/http.ts           # fetch phía server: baseURL từ env, gắn token phiên, chuẩn hoá ApiResponse<T> & lỗi
+│  ├─ api/http.ts           # apiFetch<T>() phía server tới API Gateway: gửi kèm cookie phiên, ghi lại Set-Cookie, chuẩn hoá lỗi (ApiError)
+│  ├─ api/set-cookie.ts     # đọc Set-Cookie của gateway (dùng chung cho http.ts và proxy.ts)
 │  ├─ api/baseApi.ts        # RTK Query createApi + tagTypes; feature dùng injectEndpoints
 │  ├─ store.ts · hooks.ts   # makeStore, RootState, AppDispatch · useAppDispatch, useAppSelector
+│  ├─ auth/session.ts       # getSessionUser() — GET /api/auth/me, null nếu là khách
 │  ├─ auth/guards.ts        # requireUser(), requirePermission(action) — dùng trong page & Server Action
 │  ├─ permissions.ts        # Role, Action, can()
 │  ├─ format.ts             # formatVND, formatDate
 │  └─ test-utils.tsx        # renderWithProviders, factories (makeProduct, makeOrder…)
-├─ types/                   # api.ts (ApiResponse<T>, Paginated<T>, AsyncStatus) · next-auth.d.ts · env.d.ts
+├─ types/                   # api.ts (Paginated<T>, AsyncStatus) · action.ts (ActionResult) · env.d.ts
 ├─ config/                  # site.ts (tên, metadata mặc định, menu) · routes.ts (hằng số đường dẫn)
-├─ auth.ts · auth.config.ts
-└─ middleware.ts            # (hoặc proxy.ts tuỳ version Next.js)
+└─ proxy.ts                # Next 16: middleware đổi tên thành proxy — lớp bảo vệ 1 + làm mới phiên (mục 10.3)
 ```
 
 **Vì sao `admin/` không nằm trong route group:** URL cần có tiền tố `/admin`. Còn `(storefront)` và `(auth)` là route group, chỉ dùng để tách layout và **không** xuất hiện trong URL.
@@ -226,7 +226,7 @@ src/
 |---|---|---|---|---|
 | 1.1.1 | Đăng ký bằng email | `/register` | `auth` | guest |
 | 1.1.2–1.1.4 | Đăng nhập email / Google / Facebook | `/login` | `auth` | guest |
-| 1.1.5 | Đặt lại mật khẩu | `/forgot-password`, `/reset-password` | `auth` | guest |
+| 1.1.5 | Đặt lại mật khẩu | `/forgot-password` | `auth` | guest |
 | 1.1.6 | Đăng xuất | `UserMenu` (Server Action) | `auth` | user |
 | 1.1.7 | Mở khoá sinh trắc học | — | — | *ngoài phạm vi web* |
 | 1.2.1 | Cập nhật thông tin cá nhân | `/account/profile` | `profile` | user |
@@ -301,7 +301,8 @@ Feature nhỏ (≤ 4 file) thì để phẳng, chưa cần chia thư mục con. 
 ### 4.2 Type dùng chung (BẮT BUỘC dùng, không tự viết lại)
 ```ts
 // src/types/api.ts
-export interface ApiResponse<T> { statusCode: number; message: string; data: T }
+// Backend trả body thành công KHÔNG bọc { data } (ADR-0009 của backend) → apiFetch<T>() với T là chính dữ liệu.
+// Body lỗi chuẩn: ApiErrorBody { statusCode, message: string | string[], code, error, request_id } — ở lib/api/http.ts.
 export interface Paginated<T>   { items: T[]; page: number; total: number }
 export type AsyncStatus = 'idle' | 'loading' | 'succeeded' | 'failed';
 export interface HasId { id: string }
@@ -310,7 +311,7 @@ export interface HasId { id: string }
 ### 4.3 Quy tắc
 | Tình huống | Cách làm đúng | Đừng làm |
 |---|---|---|
-| Wrapper API giống nhau cho nhiều entity | `ApiResponse<Paginated<Product>>` | Viết `{ data: Product[]; total }` lặp lại |
+| Kiểu trả về giống nhau cho nhiều entity | `apiFetch<Paginated<Product>>(...)` | Viết `{ items: Product[]; total }` lặp lại |
 | Hàm/Repository dùng cho nhiều entity | Generic có constraint: `<T extends HasId>` | `any` hoặc copy-paste |
 | DTO form cập nhật / xem trước | `Partial<Product>`, `Pick<User,'name'\|'email'>`, `Omit<Product,'id'>` | Khai báo interface mới gần giống hệt |
 | Bảng tra (map) | `Record<Role, Action[]>` | `{ [key: string]: any }` |
@@ -318,7 +319,7 @@ export interface HasId { id: string }
 | Thu hẹp kiểu | Custom type guard `function isAdmin(u): u is AdminUser` | Ép kiểu `as` bừa bãi |
 | Helper type nâng cao | Mapped type (`Nullable<T>`), conditional type + `infer` khi thật sự cần | Lạm dụng type "ma thuật" khó đọc |
 | Thư viện JS không có type | Khai báo trong `src/types/*.d.ts` (`declare module '...'`) | `// @ts-ignore` |
-| Mở rộng type thư viện (Auth.js) | Module augmentation trong `types/next-auth.d.ts` | Ép kiểu `session.user as any` |
+| Dữ liệu phiên từ backend | zod schema `SessionUser` trong `lib/auth/session.ts` | Ép kiểu `user as any` |
 
 > `as` chỉ được phép ở biên dữ liệu (kết quả `res.json()`), và **NÊN** validate bằng `zod` thay vì tin tưởng mù quáng.
 > Decorator (Buổi 1) dành cho NestJS ở phía backend — **không dùng trong frontend**.
@@ -336,12 +337,12 @@ export interface HasId { id: string }
 | `/products/[slug]` | 2.3 | **SSG + ISR** | `generateStaticParams` (SP phổ biến) + `revalidate = 60` + `revalidatePath` khi admin sửa | SEO quan trọng; giá/tồn kho đổi định kỳ. Khối đánh giá bọc `<Suspense>` (streaming) |
 | `/search` | 2.2 | **SSR** | đọc `searchParams` (tự dynamic); `noindex`; canonical về `/search` | Phụ thuộc từ khoá & bộ lọc từng request |
 | `/assistant` | 3.1–3.3 | **CSR** | Client Component, stream từ `/api/assistant/chat` | Tương tác liên tục, không cần SEO |
-| `/assistant/history`, `/assistant/[id]` | 3.4 | **SSR** | `auth()` | Dữ liệu riêng của người dùng |
+| `/assistant/history`, `/assistant/[id]` | 3.4 | **SSR** | `requirePermission('assistant:history')` | Dữ liệu riêng của người dùng |
 | `/cart` | 4.1 | **CSR** | đọc Redux store | Giỏ tạm của khách nằm ở client |
-| `/checkout` | 4.2, 5.1.1 | **SSR** + Client form | `auth()`; địa chỉ & giỏ lấy từ server | Cá nhân hoá, phải tính lại giá ở server |
+| `/checkout` | 4.2, 5.1.1 | **SSR** + Client form | `requirePermission('order:create')`; địa chỉ & giỏ lấy từ server | Cá nhân hoá, phải tính lại giá ở server |
 | `/checkout/result` | 5.1.2 | **SSR** | đọc `orderCode` từ query, **hỏi backend trạng thái thật** | Không tin `?status=PAID` trên URL |
-| `/account/*` | 1.2, 5.2, 6 | **SSR** | `auth()` (dùng cookies → tự dynamic) | Cá nhân hoá |
-| `/login`, `/register`, `/forgot-password`, `/reset-password` | 1.1 | **SSG** (form là Client Component) | đã đăng nhập → `redirect` | Trang tĩnh |
+| `/account/*` | 1.2, 5.2, 6 | **SSR** | `requirePermission(...)` (dùng cookies → tự dynamic) | Cá nhân hoá |
+| `/login`, `/register`, `/forgot-password` | 1.1 | **SSG** (form là Client Component) | đã đăng nhập → `proxy.ts` redirect (không đọc cookie trong page) | Trang tĩnh |
 | `/admin/*` | 7, 8 | **SSR** | `requirePermission('admin:access')` | Cá nhân hoá + phân quyền |
 
 > ISR có thể hiển thị giá cũ tối đa N giây. Vì vậy **giá trong đơn hàng luôn được tính lại ở server** khi `placeOrder`, không lấy giá client gửi lên.
@@ -413,7 +414,7 @@ export default async function ProductPage({ params }: Props) {
 | State UI phụ, đơn giản | mở/đóng launcher AI, drawer, modal | **Zustand** (store riêng từng mục đích) / `useState` |
 | State toàn cục ít thay đổi | theme, ngôn ngữ | **Context** (tách nhỏ + `useMemo`) |
 | State chỉ 1 component cần | input đang gõ, hover | `useState` local — **không** đẩy lên store |
-| Phiên đăng nhập | user, role | `auth()` (server) / `useSession()` (client) — **không** copy vào Redux |
+| Phiên đăng nhập | user, role | `getSessionUser()` ở server (gọi `GET /api/auth/me`); client cần thì nhận qua props — **không** copy vào Redux |
 
 > Không có công cụ "thắng tuyệt đối". Dùng **song song** nhiều công cụ là bình thường, miễn đúng loại state.
 
@@ -482,7 +483,7 @@ export function useTheme() {
 | Chia sẻ **logic** không kèm UI | **Custom Hook** (ưu tiên mặc định) | `useDebounce`, `usePagination<T>`, `useFetch<T>` |
 | Nhóm nhiều component nhỏ phối hợp thành 1 khối UI | **Compound Component** + Context | `Tabs`, `Accordion`, `Menu` trong `components/ui` |
 | Nơi gọi cần toàn quyền quyết định UI | Render Props | hiếm khi cần |
-| Bọc nhiều component bằng cùng 1 logic | HOC (generic `<P extends object>`) | hạn chế; **auth đã xử lý ở server/middleware — không viết `withAuth` phía client** |
+| Bọc nhiều component bằng cùng 1 logic | HOC (generic `<P extends object>`) | hạn chế; **auth đã xử lý ở server/proxy — không viết `withAuth` phía client** |
 
 **Chuẩn custom hook:**
 - Tên bắt đầu `use`, **một trách nhiệm**, trả về **object có tên rõ ràng + type đầy đủ** (`{ data, loading, error }`).
@@ -533,15 +534,28 @@ Công cụ: React DevTools Profiler (*Highlight updates*, *Why did this render?*
 
 ## 10. Xác thực, phân quyền & bảo mật (Buổi 8)
 
-### 10.1 Auth.js
-- `auth.ts` xuất `handlers, auth, signIn, signOut`; providers: **Credentials** (email/mật khẩu — `authorize` gọi backend xác thực, trả user hoặc `null`) + **Google** + **Facebook** (FDD 1.1.2–1.1.4). Đăng ký (1.1.1) và quên/đặt lại mật khẩu (1.1.5) là Server Action gọi API backend, không qua provider.
-- `session: { strategy: 'jwt' }` (bắt buộc với Credentials).
-- `callbacks.jwt` gắn `id`, `role` vào token **chỉ khi `user` có mặt** (lúc đăng nhập); `callbacks.session` đưa `id`, `role` ra `session.user`. **Không** nhét dữ liệu nhạy cảm vào token.
-- `types/next-auth.d.ts`: augmentation `User.{role, status}`, `Session.user.{id, role, status}`, `JWT.{id, role, status}` với `type Role = 'admin' | 'user'`, `type AccountStatus = 'active' | 'locked'`.
-- Callback `signIn`: trả `false` nếu tài khoản `locked` (FDD 8.4.4). Callback URL OAuth khai báo cho cả Google lẫn Facebook: `/api/auth/callback/google`, `/api/auth/callback/facebook`.
-- Đăng nhập/đăng xuất bằng **Server Action** trong `<form action>`.
-- Đọc phiên: **ưu tiên `await auth()` ở server**; `useSession()` chỉ khi UI client thật sự cần (bọc `SessionProvider`).
-- Middleware chạy Edge → tách `auth.config.ts` (nhẹ, không bcrypt/DB) dùng cho middleware; `auth.ts` đầy đủ dùng ở server.
+### 10.1 Phiên đăng nhập do backend cấp
+Backend (identity-service sau API Gateway) giữ toàn bộ phiên. Web **không** dùng Auth.js: nếu dùng sẽ có 2 phiên song song, và người đăng nhập Google/Facebook qua Auth.js sẽ không có tài khoản trong backend.
+
+- **Cookie:** `access_token` (15 phút) và `refresh_token` (7 ngày), httpOnly, `SameSite=Lax`, `Secure` theo `COOKIE_SECURE` của backend. JS phía client không đọc được.
+- **Gọi API:** chỉ từ server, qua `apiFetch<T>()` (`lib/api/http.ts`). Hàm này gửi kèm 2 cookie phiên tới gateway, rồi ghi lại các `Set-Cookie` gateway trả về lên domain web. Ghi cookie chỉ làm được trong Server Action / Route Handler.
+- **Làm mới phiên:** khi access token hết hạn, gateway tự refresh và trả cookie mới. Refresh token **xoay vòng** mỗi lần dùng, nên mất cookie mới là bị đăng xuất. Server Component không ghi được cookie, vì vậy `proxy.ts` làm mới trước: thấy chỉ còn `refresh_token` thì gọi `GET /api/auth/me`, rồi ghi cookie mới lên cả request (để lần render này dùng được) lẫn response.
+- **Đọc phiên:** `getSessionUser()` (`lib/auth/session.ts`) gọi `GET /api/auth/me` → `{ id, email, full_name, role, avatar_url }` hoặc `null`. Bọc `React.cache` nên một request chỉ gọi 1 lần. **Không** đọc phiên ở layout/page công khai (làm hỏng SSG/ISR).
+- **API của luồng tài khoản** (đều là Server Action trong `features/auth/actions.ts`):
+
+| FDD | Bước | API backend | Body |
+|---|---|---|---|
+| 1.1.2 | Đăng nhập email | `POST /api/auth/login` | `{ email, password }` — trả user **không có role**, role lấy qua `/api/auth/me` |
+| 1.1.1 | Gửi OTP → xác thực → đăng ký | `POST /api/auth/send-otp` → `verify-otp` → `register` | `{ email }` → `{ email, otp }` → `{ email, password, full_name }`. Đăng ký xong **không** tự đăng nhập |
+| 1.1.5 | Gửi OTP → xác thực → mật khẩu mới | `POST /api/auth/forgot-password` → `verify-reset-otp` → `reset-password` | `{ email }` → `{ email, otp }` → `{ email, new_password }`. **Không có token**: backend cho đặt lại trong 10 phút sau khi xác thực OTP, nên 3 bước nằm trong 1 trang và email giữ trong state, không đưa lên URL |
+| 1.1.6 | Đăng xuất | `POST /api/auth/logout` | Không body. Server Action trong `<form action>` (`LogoutButton`) |
+| 1.1.3–1.1.4 | Google / Facebook | `GET /api/auth/google`, `GET /api/auth/facebook` | Nút là link thường tới đường dẫn của web; `next.config.ts` rewrite sang gateway. Backend chạy OAuth, ghi cookie rồi chuyển về `REDIRECT_URI` |
+
+- **Luật mật khẩu** phải khớp backend: ≥ 8 ký tự, có ít nhất 1 **chữ hoa** và 1 chữ số (`PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*\d).{8,}$/`).
+- **OTP:** 6 số, hiệu lực 5 phút, sai 5 lần thì huỷ. Gửi lại trong 60 giây → `429`. `send-otp` báo `409` nếu email đã đăng ký.
+- **Lỗi:** body `{ statusCode, message, code, error, request_id }`, `message` là mảng khi lỗi validate. `apiFetch` đổi thành `ApiError(status, message, code)`. Mã gắn được vào ô của form: `NT-IDN-1006` → `email`, `NT-IDN-1007` → `otp`; còn lại hiện thông báo chung.
+- **Biến môi trường web:** chỉ cần `API_BASE_URL` (địa chỉ gateway, ví dụ `http://localhost:8080`). Không có tiền tố `NEXT_PUBLIC_`.
+- **Triển khai OAuth:** ở local, callback về gateway `localhost:8080` vẫn chạy vì cookie không phân biệt cổng. Khi web và gateway khác domain (Vercel), cookie OAuth sẽ nằm ở domain gateway: phải đặt **biến môi trường** của backend `GOOGLE_CALLBACK_URL` / `FACEBOOK_CALLBACK_URL` = `https://<domain-web>/api/auth/{google|facebook}/callback` và `REDIRECT_URI` = domain web (rewrite của web đã có sẵn đường callback). Việc này chỉ đổi cấu hình, không sửa code backend.
 
 ### 10.2 Phân quyền RBAC — một nguồn sự thật duy nhất
 ```ts
@@ -575,15 +589,18 @@ export const can = (role: Role, action: Action) => permissions[role].includes(ac
 ```
 ```ts
 // src/lib/auth/guards.ts — dùng trong page (Server Component) và Server Action
+export async function requireUser() {
+  const user = await getSessionUser();                    // GET /api/auth/me
+  if (!user) redirect(routes.login);                      // 401
+  return user;
+}
 export async function requirePermission(action: Action) {
-  const session = await auth();
-  if (!session) redirect('/login');                       // 401
-  if (session.user.status === 'locked') redirect('/login?error=locked');
-  if (!can(session.user.role, action)) redirect('/403');  // 403
-  return session;
+  const user = await requireUser();
+  if (!can(user.role, action)) redirect(routes.forbidden); // 403
+  return user;
 }
 ```
-**Mọi nơi** (middleware, page, Server Action, UI ẩn/hiện nút) đều gọi `can()` / `requirePermission()`. Đổi chính sách thì chỉ sửa đúng file này.
+**Mọi nơi** (proxy, page, Server Action, UI ẩn/hiện nút) đều gọi `can()` / `requirePermission()`. Đổi chính sách thì chỉ sửa đúng file này.
 
 | Hành động (FDD) \ Vai trò | guest | user | admin |
 |---|:-:|:-:|:-:|
@@ -597,15 +614,15 @@ export async function requirePermission(action: Action) {
 | Danh mục, sản phẩm, tồn kho (7) | ✕ | ✕ | ✓ |
 | Thống kê, đơn hàng, giao dịch, xác nhận COD, mã giảm giá, người dùng (8) | ✕ | ✕ | ✓ |
 
-**Trạng thái tài khoản (8.4.4):** tài khoản `locked` bị chặn ngay ở callback `signIn` của Auth.js và bị chặn lại trong `requirePermission()` (phòng trường hợp bị khoá khi đang có phiên). Đưa `status` vào JWT/Session giống `role`.
+**Trạng thái tài khoản (8.4.4):** backend chặn tài khoản bị khoá (`is_active = false`) khi đăng nhập (`403 NT-IDN-1002` "Tài khoản đã bị khoá", web hiện nguyên câu này) và khi làm mới token. Admin khoá tài khoản thì backend thu hồi refresh token, nên phiên đang mở hết hạn trong tối đa 15 phút (thời hạn access token). `/api/auth/me` không trả trạng thái khoá, web không tự kiểm tra.
 
 ### 10.3 Bốn lớp bảo vệ (BẮT BUỘC đủ cả 4)
 | Lớp | Việc phải làm |
 |---|---|
-| 1. **Middleware** | `matcher: ['/account/:path*', '/checkout/:path*', '/assistant/:path+', '/admin/:path*']` (`/assistant` gốc vẫn công khai cho khách); chưa đăng nhập → `/login`; sai vai trò → `/403`. Chỉ kiểm tra **nhẹ**, không query DB. |
-| 2. **Page (Server Component)** | `auth()` **trước khi lấy dữ liệu**; không có phiên → `redirect('/login')`; thiếu quyền → `redirect('/403')`. Kiểm tra trong **từng page**, không chỉ ở layout (layout không render lại khi chuyển trang con). |
-| 3. **Server Action / Route Handler** | Server Action là **endpoint công khai**: luôn `auth()` + `can()` + `zod.parse()` đầu vào. |
-| 4. **Tầng dữ liệu** | Truy vấn luôn lọc theo `session.user.id`; **không tin** `userId` gửi từ client. |
+| 1. **Proxy** (`src/proxy.ts`) | `matcher` gồm `/account/:path*`, `/checkout/:path*`, `/assistant/:path+`, `/admin/:path*` (`/assistant` gốc vẫn công khai cho khách) và các trang `/login`, `/register`, `/forgot-password`. Chưa đăng nhập → `/login?callbackUrl=…`; `/admin` mà role trong access token khác `admin` → `/403`; đã đăng nhập mà vào trang auth → `/`. Role đọc từ payload JWT **không kiểm chữ ký**, chỉ để điều hướng. Chỉ gọi backend khi cần làm mới phiên (mục 10.1). |
+| 2. **Page (Server Component)** | `requirePermission()` **trước khi lấy dữ liệu**; không có phiên → `redirect('/login')`; thiếu quyền → `redirect('/403')`. Kiểm tra trong **từng page**, không chỉ ở layout (layout không render lại khi chuyển trang con). |
+| 3. **Server Action / Route Handler** | Server Action là **endpoint công khai**: luôn `getSessionUser()` + `can()` + `zod.parse()` đầu vào. Gateway và service backend kiểm tra lại quyền một lần nữa. |
+| 4. **Tầng dữ liệu** | Backend lọc theo user trong access token (gateway gắn `X-User-*`). Web **không** gửi `userId` của người đang đăng nhập lên API, cũng không tin `userId` từ client. |
 
 ```ts
 // features/admin/products/actions.ts — FDD 7.2 — mẫu chuẩn Server Action
@@ -613,17 +630,17 @@ export async function requirePermission(action: Action) {
 const Schema = z.object({ id: z.string().min(1) });
 
 export async function deleteProduct(formData: FormData) {
-  const session = await auth();
-  if (!session) throw new Error('UNAUTHENTICATED');
-  if (!can(session.user.role, 'product:manage')) throw new Error('FORBIDDEN');
+  const user = await getSessionUser();
+  if (!user) throw new Error('UNAUTHENTICATED');
+  if (!can(user.role, 'product:manage')) throw new Error('FORBIDDEN');
   const { id } = Schema.parse({ id: formData.get('id') });
-  await db.product.delete({ where: { id } });
+  await apiFetch(`/api/admin/products/${id}`, { method: 'DELETE' });
   revalidatePath('/products');
 }
 ```
 
 ### 10.4 Checklist bảo mật
-- [ ] Token/phiên chỉ trong **cookie httpOnly, Secure, SameSite** (Auth.js lo). **Cấm** lưu token ở `localStorage`.
+- [ ] Token/phiên chỉ trong **cookie httpOnly, Secure, SameSite** (backend ghi, `apiFetch`/`proxy.ts` ghi lại nguyên thuộc tính). **Cấm** lưu token ở `localStorage`.
 - [ ] Secret **không** có tiền tố `NEXT_PUBLIC_`; file server dùng `import 'server-only'`.
 - [ ] `.env.local` trong `.gitignore`; commit `.env.example` (chỉ tên biến, không giá trị).
 - [ ] Callback URL OAuth khai báo đúng cho cả localhost và domain production.
@@ -662,7 +679,7 @@ Kim tự tháp: **nhiều unit** (hàm, reducer, hook, `can()`) → **vừa đ�
 |---|---|
 | **cart** (4.1) | `cartSlice` (add / remove / updateQuantity / Mua ngay + biên: id không tồn tại, thêm trùng, vượt tồn kho), selectors tổng tiền, gộp giỏ khách khi đăng nhập, `CartSummary` |
 | **checkout** (4.2, 5.1) | `pricing.ts` (tạm tính, mã giảm giá %/cố định, hết hạn, đơn tối thiểu), `CouponInput` báo lỗi, `PaymentMethodSelect`, trang kết quả với 3 trạng thái (thành công / thất bại / huỷ) |
-| **auth & phân quyền** (1.1, 8.4) | `can()` đủ ma trận, `requirePermission()` (chưa đăng nhập / locked / thiếu quyền), Server Action admin từ chối khi sai vai trò (mock `auth()`), zod của form đăng ký |
+| **auth & phân quyền** (1.1, 8.4) | `can()` đủ ma trận, `requirePermission()` (chưa đăng nhập / thiếu quyền), Server Action admin từ chối khi sai vai trò (mock `getSessionUser()`), Server Action auth đổi lỗi backend (`ApiError`) thành lỗi form, zod của form đăng ký |
 | **orders** (5.2) khuyến khích | `order.rules.ts` (`canCancel` theo trạng thái), `OrderStatusFilter` cập nhật URL |
 | **assistant** (3) khuyến khích | `useAssistantStore` (thêm tin, reset), luồng khách → đăng nhập → `SaveConversationDialog` → `claimConversation` |
 | **Hooks** | `useDebounce` (fake timers), `usePagination<T>`, `useProductFilters` (`renderHook` + `act`) |
@@ -714,7 +731,7 @@ collectCoverageFrom: ['src/features/**/*.{ts,tsx}', 'src/entities/**/*.{ts,tsx}'
 ## Thay đổi chính
 ## Chiến lược render (nếu đụng route) — dán bảng `npm run build`
 ## State đặt ở đâu & vì sao
-## Bảo mật: middleware / page / action / data — đã kiểm tra lớp nào
+## Bảo mật: proxy / page / action / data — đã kiểm tra lớp nào
 ## Test: case đã thêm, coverage module
 ## Ảnh chụp / số liệu Lighthouse (nếu có)
 ```
@@ -725,9 +742,9 @@ collectCoverageFrom: ['src/features/**/*.{ts,tsx}', 'src/entities/**/*.{ts,tsx}'
 
 | Sprint | Mục tiêu | Deliverable chính | FDD | Buổi |
 |---|---|---|---|---|
-| **0 — Setup** (2–3 ngày) | Khung dự án | `create-next-app` + TS strict, ESLint (kèm luật chặn import sâu), Prettier, alias `@/`, **toàn bộ khung thư mục mục 3** (file rỗng + `index.ts`), `types/api.ts`, `lib/api/http.ts`, `baseApi`, Jest + RTL, CI, `.env.example`, **chốt version Next.js/Auth.js & hợp đồng API với backend** | — | 1, 6, 7 |
+| **0 — Setup** (2–3 ngày) | Khung dự án | `create-next-app` + TS strict, ESLint (kèm luật chặn import sâu), Prettier, alias `@/`, **toàn bộ khung thư mục mục 3** (file rỗng + `index.ts`), `types/api.ts`, `lib/api/http.ts`, `baseApi`, Jest + RTL, CI, `.env.example`, **chốt version Next.js & hợp đồng API với backend** | — | 1, 6, 7 |
 | **1 — Khám phá sản phẩm** | Trang công khai + SEO | Trang chủ, danh mục, tìm/lọc/sắp xếp, chi tiết SP, hiển thị đánh giá; `next/image`, `next/font`, metadata, sitemap, robots, JSON-LD, opengraph-image | 2 | 7, 8 |
-| **2 — Tài khoản & phân quyền** | Đăng nhập + RBAC | Auth.js (email, Google, Facebook), đăng ký, quên/đặt lại mật khẩu, đăng xuất; `permissions.ts`, `guards.ts`, middleware, `/403`; hồ sơ, địa chỉ; khung `admin/layout` | 1 | 8 |
+| **2 — Tài khoản & phân quyền** | Đăng nhập + RBAC | Nối API identity của backend (email, Google, Facebook), đăng ký, quên/đặt lại mật khẩu, đăng xuất; `permissions.ts`, `guards.ts`, `proxy.ts`, `/403`; hồ sơ, địa chỉ; khung `admin/layout` | 1 | 8 |
 | **3 — Mua hàng** | Giỏ → đặt → trả tiền → đơn | `cartSlice` + gộp giỏ khi đăng nhập, Mua ngay, checkout (địa chỉ, mã giảm giá, COD/PayOS), trang kết quả, DS/chi tiết/huỷ đơn, viết đánh giá | 4, 5 | 3, 4 |
 | **4 — AI & thông báo** | Trợ lý + giữ chân người dùng | Chat streaming, câu hỏi nhanh, SP gợi ý, hội thoại khách theo phiên + lưu khi đăng nhập, lịch sử; cảnh báo giá; chuông thông báo + trang thông báo | 3, 6 | 2, 4 |
 | **5 — Quản trị** | Vận hành cửa hàng | Danh mục, sản phẩm + tồn kho, thống kê (chart `next/dynamic`), đơn hàng + cập nhật trạng thái + xác nhận COD, giao dịch, mã giảm giá, người dùng (role, trạng thái) | 7, 8 | 5, 8 |
@@ -744,15 +761,15 @@ collectCoverageFrom: ['src/features/**/*.{ts,tsx}', 'src/entities/**/*.{ts,tsx}'
 | "useState only works in Client Components" | Dùng hook/`onClick` trong Server Component | Tách phần tương tác ra component lá có `'use client'` |
 | Hydration mismatch | `Date.now()`, `Math.random()`, `window` khi render SSR | Đưa vào `useEffect` / `next/dynamic` `ssr:false` |
 | Trang SSG không cập nhật dữ liệu mới | Thiếu `revalidate` / `revalidatePath` | Thêm ISR theo bảng mục 5 |
-| Trang tưởng SSG nhưng build ra `ƒ Dynamic` | Dùng `cookies()`/`headers()`/`auth()` hoặc `no-store` | Kiểm tra lại, tách phần động ra |
+| Trang tưởng SSG nhưng build ra `ƒ Dynamic` | Dùng `cookies()`/`headers()`/`getSessionUser()` hoặc `no-store` | Kiểm tra lại, tách phần động ra |
 | `params.id` undefined / lỗi kiểu | Next 15: `params` là Promise | `const { id } = await params` |
 | Dữ liệu user A lộ sang user B | Redux store singleton trên server | `makeStore()` trong `StoreProvider` |
-| User thường vào được `/admin/xxx` | Chỉ check ở layout hoặc chỉ middleware | Check `auth()+can()` trong từng page & action |
+| User thường vào được `/admin/xxx` | Chỉ check ở layout hoặc chỉ proxy | Check `requirePermission()` trong từng page & action |
 | `React.memo` không có tác dụng | Prop hàm/object tạo mới mỗi render | `useCallback` / `useMemo` / hằng số |
 | List giật, mất state dòng khi xoá | `key={index}` | `key={item.id}` |
 | Lighthouse điểm thấp bất thường | Đo trên `npm run dev` | `npm run build && npm start`, chế độ ẩn danh |
-| bcrypt lỗi trong middleware | Middleware chạy Edge runtime | Dùng `auth.config.ts` nhẹ cho middleware |
-| `session.user.role` báo lỗi TS | Chưa augmentation | `types/next-auth.d.ts` |
+| Bị đăng xuất bất chợt sau khoảng 15 phút | Gateway refresh trong lúc render Server Component, cookie mới (refresh token đã xoay vòng) không ghi được | Giữ `proxy.ts` làm mới trước; route mới cần phiên phải nằm trong `matcher` |
+| Lỗi 400 khi đăng ký / đặt lại mật khẩu dù form báo hợp lệ | `newPasswordSchema` lệch luật mật khẩu backend | Giữ khớp `PASSWORD_REGEX` của backend (mục 10.1) |
 | Test flaky khi chờ API | Dùng `getBy` cho phần tử bất đồng bộ / sleep thủ công | `findBy` / `waitFor` |
 | Đơn hiện "đã thanh toán" dù chưa trả tiền | Tin `?status=PAID` trên `returnUrl` của PayOS | `/checkout/result` hỏi backend trạng thái thật theo `orderCode` |
 | Tổng tiền đơn sai / bị sửa | Lấy giá & giảm giá từ client gửi lên | `placeOrder` tính lại toàn bộ ở server |
@@ -768,7 +785,7 @@ collectCoverageFrom: ['src/features/**/*.{ts,tsx}', 'src/entities/**/*.{ts,tsx}'
 - Zustand TypeScript Guide
 - Jest — jestjs.io · Testing Library Guiding Principles — testing-library.com · Kent C. Dodds, *Common mistakes with React Testing Library*
 - Next.js Docs (App Router, Authentication, Middleware) — nextjs.org/docs · Next.js Learn
-- Auth.js — authjs.dev
+- Backend NexTech — `Backend_NexTech/project-knowledge/design/IDENTITY/NT.IDENTITY/API_Spec.md`, `design/SHARED/NT.GATEWAY/`
 - web.dev/lighthouse · Google Search Central (Core Web Vitals) · Rich Results Test
 
 > **Nguyên tắc cuối:** khi phân vân, chọn phương án **đơn giản hơn, an toàn hơn, đo được**. Có số liệu thì tranh luận, không có số liệu thì làm theo tài liệu này.

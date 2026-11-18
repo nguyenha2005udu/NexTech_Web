@@ -3,7 +3,8 @@
 // FDD 1.1.1 — Đăng ký bằng email: Email → Xác thực OTP → Tạo mật khẩu (Figma 05.02–05.04)
 import { useState } from "react";
 import Link from "next/link";
-import { Button, Form, Input } from "antd";
+import { useRouter } from "next/navigation";
+import { App, Button, Form, Input } from "antd";
 import { UserFieldIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { zodRule } from "@/lib/zod-rule";
@@ -74,6 +75,8 @@ export function RegisterFlow() {
 function ProfileStepForm({ email }: { email: string }) {
   const [form] = Form.useForm<{ fullName: string; password: string; confirmPassword: string }>();
   const { pending, run } = useAuthAction(form);
+  const { message } = App.useApp();
+  const router = useRouter();
 
   return (
     <Form
@@ -81,7 +84,12 @@ function ProfileStepForm({ email }: { email: string }) {
       layout="vertical"
       requiredMark={false}
       className={styles.form}
-      onFinish={(values) => run(completeRegistration, { ...values, email }, () => undefined)}
+      onFinish={(values) =>
+        run(completeRegistration, { ...values, email }, () => {
+          message.success("Đăng ký thành công, mời bạn đăng nhập");
+          router.push(routes.login);
+        })
+      }
     >
       <Form.Item name="fullName" label="Họ và tên" rules={[zodRule(fullNameSchema)]} validateTrigger="onBlur">
         <Input size="large" placeholder="Minh Anh" autoComplete="name" prefix={<UserFieldIcon />} autoFocus />

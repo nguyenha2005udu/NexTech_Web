@@ -1,22 +1,23 @@
 "use client";
 
-// FDD 1.1.5 — Quên mật khẩu: Email → OTP → chuyển sang /reset-password (Figma 05.05–05.06)
+// FDD 1.1.5 — Quên mật khẩu: Email → OTP → Mật khẩu mới (Figma 05.05–05.07).
+// Backend không cấp token đặt lại: sau khi xác thực OTP, đặt mật khẩu mới theo email trong 10 phút,
+// nên cả 3 bước nằm chung một trang (email giữ trong state, không đưa lên URL).
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { routes } from "@/config/routes";
 import { AuthHeading } from "./AuthHeading";
 import { EmailStepForm } from "./EmailStepForm";
 import { OtpStepForm } from "./OtpStepForm";
-import { StepIndicator } from "./StepIndicator";
+import { ResetPasswordForm } from "./ResetPasswordForm";
+import { StepIndicator, type AuthStep } from "./StepIndicator";
 import styles from "./auth.module.css";
 
 export function ForgotPasswordFlow() {
-  const router = useRouter();
-  const [email, setEmail] = useState<string | null>(null);
-  const [editing, setEditing] = useState(true);
+  const [step, setStep] = useState<AuthStep>(1);
+  const [email, setEmail] = useState("");
 
-  if (editing || !email) {
+  if (step === 1) {
     return (
       <>
         <AuthHeading title="Quên mật khẩu" subtitle="Nhập email đã dùng để đăng ký NexTech." />
@@ -24,10 +25,10 @@ export function ForgotPasswordFlow() {
           <StepIndicator current={1} />
           <EmailStepForm
             purpose="reset-password"
-            defaultEmail={email ?? undefined}
+            defaultEmail={email}
             onSent={(value) => {
               setEmail(value);
-              setEditing(false);
+              setStep(2);
             }}
           />
         </div>
@@ -40,20 +41,29 @@ export function ForgotPasswordFlow() {
     );
   }
 
+  if (step === 2) {
+    return (
+      <>
+        <AuthHeading title="Xác thực mã OTP" subtitle="Nhập mã 6 số để xác minh yêu cầu đặt lại mật khẩu." />
+        <div className={styles.body}>
+          <StepIndicator current={2} />
+          <OtpStepForm
+            email={email}
+            purpose="reset-password"
+            onChangeEmail={() => setStep(1)}
+            onVerified={() => setStep(3)}
+          />
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
-      <AuthHeading title="Xác thực mã OTP" subtitle="Nhập mã 6 số để xác minh yêu cầu đặt lại mật khẩu." />
+      <AuthHeading title="Đặt mật khẩu mới" subtitle="Tạo mật khẩu mới để bảo vệ tài khoản NexTech." />
       <div className={styles.body}>
-        <StepIndicator current={2} />
-        <OtpStepForm
-          email={email}
-          purpose="reset-password"
-          onChangeEmail={() => setEditing(true)}
-          onVerified={(token) => {
-            const query = new URLSearchParams({ token: token ?? "" });
-            router.push(`${routes.resetPassword}?${query.toString()}`);
-          }}
-        />
+        <StepIndicator current={3} />
+        <ResetPasswordForm email={email} />
       </div>
     </>
   );

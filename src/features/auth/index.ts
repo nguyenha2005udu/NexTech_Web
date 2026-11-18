@@ -5,5 +5,5 @@ export { SocialLogin } from "./components/SocialLogin";
 export { LoginForm } from "./components/LoginForm";
 export { RegisterFlow } from "./components/RegisterFlow";
 export { ForgotPasswordFlow } from "./components/ForgotPasswordFlow";
-export { ResetPasswordForm } from "./components/ResetPasswordForm";
+export { LogoutButton } from "./components/LogoutButton";
 export { StepIndicator } from "./components/StepIndicator";

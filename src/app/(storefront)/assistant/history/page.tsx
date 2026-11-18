@@ -1,8 +1,8 @@
 // FDD 3.4 — Lịch sử hội thoại (Figma 02.04). SSR: dữ liệu riêng của người dùng.
-// TODO(auth): requirePermission('assistant:history') trước khi lấy dữ liệu.
 import type { Metadata } from "next";
 import { routes } from "@/config/routes";
 import { conversationService } from "@/entities/conversation/service";
+import { requirePermission } from "@/lib/auth/guards";
 import { AssistantShell, AssistantSidebar, ConversationHistoryList } from "@/features/assistant";
 
 export const metadata: Metadata = {
@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
+  await requirePermission("assistant:history");
   const conversations = await conversationService.listMine();
 
   return (

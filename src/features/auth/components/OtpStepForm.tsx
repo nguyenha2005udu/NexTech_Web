@@ -16,7 +16,7 @@ type Props = {
   email: string;
   purpose: OtpPurpose;
   onChangeEmail: () => void;
-  onVerified: (resetToken?: string) => void;
+  onVerified: () => void;
 };
 
 export function OtpStepForm({ email, purpose, onChangeEmail, onVerified }: Props) {
@@ -44,7 +44,7 @@ export function OtpStepForm({ email, purpose, onChangeEmail, onVerified }: Props
       layout="vertical"
       requiredMark={false}
       className={styles.form}
-      onFinish={({ otp }) => run(verifyOtp, { email, otp, purpose }, (res) => onVerified(res.data.resetToken))}
+      onFinish={({ otp }) => run(verifyOtp, { email, otp, purpose }, () => onVerified())}
     >
       <Form.Item
         name="otp"

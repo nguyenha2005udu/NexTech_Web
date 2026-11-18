@@ -14,6 +14,5 @@ export const routes = {
   login: "/login",
   register: "/register",
   forgotPassword: "/forgot-password",
-  resetPassword: "/reset-password",
   forbidden: "/403",
 } as const;
