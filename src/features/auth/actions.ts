@@ -1,10 +1,13 @@
 "use server";
 
-// FDD 1.1 — Server Action cho đăng nhập / đăng ký / đặt lại mật khẩu.
-// TODO(backend): chưa có Auth.js và API backend. Các action dưới đây chỉ validate bằng zod rồi
-// trả kết quả mock để chạy được luồng giao diện. Khi nối backend: gọi API qua lib/api/http.ts
-// và dùng signIn() của Auth.js cho đăng nhập.
+// FDD 1.1 — Server Action cho đăng nhập / đăng ký / đặt lại mật khẩu / đăng xuất.
+// Gọi identity-service qua API Gateway (lib/api/http.ts). Phiên là cookie httpOnly do backend cấp,
+// apiFetch ghi lại cookie lên domain web. Hợp đồng: Backend_NexTech NT.IDENTITY API_Spec §1.
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import type { z } from "zod";
+import { routes } from "@/config/routes";
+import { ApiError, apiFetch } from "@/lib/api/http";
 import type { ActionFailure, ActionResult } from "@/types/action";
 import {
   completeRegistrationSchema,
@@ -13,11 +16,6 @@ import {
   resetPasswordSchema,
   verifyOtpSchema,
 } from "./schemas";
-
-const NOT_CONNECTED: ActionFailure = {
-  ok: false,
-  message: "Chưa kết nối máy chủ xác thực. Đây là bản giao diện.",
-};
 
 function invalid(error: z.ZodError): ActionFailure {
   const fieldErrors: Record<string, string> = {};
@@ -28,38 +26,75 @@ function invalid(error: z.ZodError): ActionFailure {
   return { ok: false, message: error.issues[0]?.message ?? "Dữ liệu không hợp lệ", fieldErrors };
 }
 
-/** 1.1.2 Đăng nhập bằng email + mật khẩu */
+// Mã lỗi backend gắn được vào một ô của form
+const FIELD_BY_CODE: Record<string, string> = {
+  "NT-IDN-1006": "email", // Email đã được sử dụng
+  "NT-IDN-1007": "otp", // OTP sai, hết hạn hoặc vượt số lần thử
+};
+
+function failed(err: unknown): ActionFailure {
+  if (!(err instanceof ApiError)) throw err;
+  const field = err.code ? FIELD_BY_CODE[err.code] : undefined;
+  return { ok: false, message: err.message, ...(field && { fieldErrors: { [field]: err.message } }) };
+}
+
+async function call(path: string, body: unknown): Promise<ActionResult> {
+  try {
+    await apiFetch(path, { method: "POST", body });
+    return { ok: true };
+  } catch (err) {
+    return failed(err);
+  }
+}
+
+/** 1.1.2 Đăng nhập bằng email + mật khẩu. Backend ghi cookie phiên. */
 export async function loginWithEmail(input: unknown): Promise<ActionResult> {
   const parsed = loginSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  return NOT_CONNECTED;
+  return call("/api/auth/login", parsed.data);
 }
 
-/** 1.1.1 / 1.1.5 Gửi mã OTP tới email */
+/** 1.1.1 / 1.1.5 Gửi mã OTP tới email. Đăng ký và quên mật khẩu dùng 2 API khác nhau. */
 export async function requestOtp(input: unknown): Promise<ActionResult> {
   const parsed = requestOtpSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  return { ok: true }; // mock: coi như đã gửi mã
+  const { email, purpose } = parsed.data;
+  return call(purpose === "register" ? "/api/auth/send-otp" : "/api/auth/forgot-password", { email });
 }
 
-/** Xác thực mã OTP. Với luồng đặt lại mật khẩu, trả về token dùng ở /reset-password. */
-export async function verifyOtp(input: unknown): Promise<ActionResult<{ resetToken?: string }>> {
+/** Xác thực mã OTP. Backend đánh dấu email đã xác thực trong 10 phút cho bước kế tiếp. */
+export async function verifyOtp(input: unknown): Promise<ActionResult> {
   const parsed = verifyOtpSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  // mock: chấp nhận mọi mã 6 số
-  return { ok: true, data: parsed.data.purpose === "reset-password" ? { resetToken: "demo-token" } : {} };
+  const { email, otp, purpose } = parsed.data;
+  return call(purpose === "register" ? "/api/auth/verify-otp" : "/api/auth/verify-reset-otp", { email, otp });
 }
 
-/** 1.1.1 Hoàn tất đăng ký (họ tên + mật khẩu) */
+/** 1.1.1 Hoàn tất đăng ký (họ tên + mật khẩu). Backend không tự đăng nhập sau khi đăng ký. */
 export async function completeRegistration(input: unknown): Promise<ActionResult> {
   const parsed = completeRegistrationSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  return NOT_CONNECTED;
+  const { email, fullName, password } = parsed.data;
+  return call("/api/auth/register", { email, password, full_name: fullName });
 }
 
-/** 1.1.5 Đặt mật khẩu mới */
+/** 1.1.5 Đặt mật khẩu mới, sau khi đã xác thực OTP. Backend thu hồi mọi phiên của tài khoản. */
 export async function resetPassword(input: unknown): Promise<ActionResult> {
   const parsed = resetPasswordSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  return NOT_CONNECTED;
+  const { email, password } = parsed.data;
+  return call("/api/auth/reset-password", { email, new_password: password });
+}
+
+/** 1.1.6 Đăng xuất. Backend thu hồi refresh token và xoá cookie. */
+export async function logout(): Promise<void> {
+  try {
+    await apiFetch("/api/auth/logout", { method: "POST" });
+  } catch {
+    // Backend lỗi vẫn cho đăng xuất ở web: cookie phiên bị xoá bên dưới
+  }
+  const store = await cookies();
+  store.delete("access_token");
+  store.delete("refresh_token");
+  redirect(routes.home);
 }

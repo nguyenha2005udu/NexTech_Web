@@ -1,8 +1,10 @@
 "use client";
 
 // FDD 1.1.3–1.1.4 — Đăng nhập Google / Facebook.
-// TODO(auth): nối signIn("google" | "facebook") của Auth.js khi cấu hình provider.
-import { App, Button } from "antd";
+// Backend tự chạy OAuth: GET /api/auth/{google|facebook} → nhà cung cấp → callback → ghi cookie phiên
+// → chuyển về REDIRECT_URI. Web chỉ cần đưa trình duyệt tới đó; next.config.ts rewrite đường dẫn
+// này sang API Gateway nên không lộ địa chỉ backend ra client.
+import { Button } from "antd";
 import { FacebookIcon, GoogleIcon } from "@/components/ui/icons";
 import styles from "./auth.module.css";
 
@@ -12,18 +14,11 @@ const PROVIDERS = [
 ] as const;
 
 export function SocialLogin() {
-  const { message } = App.useApp();
   return (
     <div className={styles.social}>
       <div className={styles.divider}>hoặc</div>
       {PROVIDERS.map(({ id, label, Icon }) => (
-        <Button
-          key={id}
-          block
-          className={styles.socialButton}
-          icon={<Icon />}
-          onClick={() => message.info("Chưa cấu hình đăng nhập mạng xã hội. Đây là bản giao diện.")}
-        >
+        <Button key={id} block href={`/api/auth/${id}`} className={styles.socialButton} icon={<Icon />}>
           {label}
         </Button>
       ))}

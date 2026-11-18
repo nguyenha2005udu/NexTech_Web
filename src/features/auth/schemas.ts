@@ -13,8 +13,8 @@ export const loginPasswordSchema = z.string({ error: "Vui lòng nhập mật kh�
 export const newPasswordSchema = z
   .string({ error: "Vui lòng nhập mật khẩu" })
   .min(8, "Mật khẩu cần ít nhất 8 ký tự")
-  .regex(/[A-Za-z]/, "Mật khẩu cần có chữ cái")
-  .regex(/\d/, "Mật khẩu cần có chữ số");
+  .regex(/[A-Z]/, "Mật khẩu cần có ít nhất 1 chữ hoa")
+  .regex(/\d/, "Mật khẩu cần có chữ số"); // khớp PASSWORD_REGEX của backend: /^(?=.*[A-Z])(?=.*\d).{8,}$/
 
 export const otpSchema = z
   .string({ error: "Vui lòng nhập mã xác thực" })
@@ -48,7 +48,7 @@ export type CompleteRegistrationInput = z.infer<typeof completeRegistrationSchem
 
 export const resetPasswordSchema = z
   .object({
-    token: z.string().min(1, "Liên kết đặt lại không hợp lệ"),
+    email: emailSchema,
     password: newPasswordSchema,
     confirmPassword: z.string(),
   })
