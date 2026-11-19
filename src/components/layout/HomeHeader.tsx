@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
-import { CartIcon, MoonIcon, UserIcon } from "@/components/ui/icons";
+import { CartIcon, MoonIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
 import { SearchBar, SearchBarView } from "@/features/catalog";
 import styles from "./StorefrontHeader.module.css";
+import { UserMenu } from "./UserMenu";
 
 // Header trang chủ — Figma 01.01 (topbar + thanh chính).
 export function HomeHeader() {
@@ -38,9 +39,7 @@ export function HomeHeader() {
             <Link href={routes.cart} className={styles.iconButton} aria-label="Giỏ hàng">
               <CartIcon />
             </Link>
-            <Link href={routes.login} className={styles.accountButton}>
-              <UserIcon /> Tài khoản
-            </Link>
+            <UserMenu guestLabel="Tài khoản" linkClassName={styles.accountButton} />
           </nav>
         </div>
       </div>

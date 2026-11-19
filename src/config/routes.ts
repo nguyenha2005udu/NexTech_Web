@@ -8,6 +8,7 @@ export const routes = {
   assistantHistory: "/assistant/history",
   assistantConversation: (id: string) => `/assistant/${id}`,
   cart: "/cart",
+  profile: "/account/profile",
   notifications: "/account/notifications",
   priceAlerts: "/account/price-alerts",
   orderLookup: "/account/orders",
