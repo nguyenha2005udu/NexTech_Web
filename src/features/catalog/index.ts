@@ -7,4 +7,5 @@ export { EmptyResult } from "./components/EmptyResult";
 export { ResultCount } from "./components/ResultCount";
 export { ProductGrid } from "./components/ProductGrid";
 export { ProductDetailView } from "./components/ProductDetailView";
+export { ProductDetailSkeleton } from "./components/ProductDetailSkeleton";
 export { Rating } from "./components/Rating";
