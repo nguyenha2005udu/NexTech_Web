@@ -4,6 +4,7 @@ import { Logo } from "@/components/ui/Logo";
 import { CartIcon, MoonIcon, UserIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { siteConfig } from "@/config/site";
+import { CartBadge } from "@/features/cart";
 import { SearchBar, SearchBarView } from "@/features/catalog";
 import styles from "./StorefrontHeader.module.css";
 
@@ -35,8 +36,10 @@ export function HomeHeader() {
             <button type="button" className={styles.iconButton} aria-label="Chế độ tối (sắp có)" title="Chế độ tối (sắp có)" disabled>
               <MoonIcon />
             </button>
-            <Link href={routes.cart} className={styles.iconButton} aria-label="Giỏ hàng">
+            <Link href={routes.cart} className={`${styles.iconButton} ${styles.cartLink}`}>
               <CartIcon />
+              <span className="sr-only">Giỏ hàng</span>
+              <CartBadge variant="overlay" />
             </Link>
             <Link href={routes.login} className={styles.accountButton}>
               <UserIcon /> Tài khoản

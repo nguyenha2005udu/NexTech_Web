@@ -2,6 +2,7 @@
 import type { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
 import { render, type RenderOptions } from "@testing-library/react";
+import type { CartItem } from "@/features/cart";
 import type { Product, ProductFilters } from "@/entities/product";
 import { makeStore, type AppStore, type RootState } from "@/lib/store";
 
@@ -27,6 +28,23 @@ export function makeProduct(override: Partial<Product> = {}): Product {
     cpu: "Intel Core i5",
     specs: [],
     images: [],
+    ...override,
+  };
+}
+
+/** Một dòng giỏ hàng mẫu (đã chọn, số lượng 1). */
+export function makeCartItem(override: Partial<CartItem> = {}): CartItem {
+  seq += 1;
+  return {
+    productId: `p-${seq}`,
+    slug: `san-pham-${seq}`,
+    name: `Sản phẩm ${seq}`,
+    summary: "Core i5 · 16 GB RAM",
+    imageSrc: "/images/products/laptop-blue.svg",
+    price: 10_000_000,
+    quantity: 1,
+    maxQuantity: 10,
+    selected: true,
     ...override,
   };
 }

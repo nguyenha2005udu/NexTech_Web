@@ -1,10 +1,12 @@
 // Mục 7.2 — Redux store. KHÔNG export một store dùng chung: trên server, store singleton làm dữ liệu
 // người dùng A lộ sang người dùng B. StoreProvider gọi makeStore() một lần cho mỗi phiên trình duyệt.
-// Slice nghiệp vụ (cart — FDD 4.1) thêm vào `rootReducer` khi có feature tương ứng.
+// Mỗi miền nghiệp vụ một slice (mục 7.2).
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import { cartReducer } from "@/features/cart";
 import { baseApi } from "@/lib/api/baseApi";
 
 const rootReducer = combineReducers({
+  cart: cartReducer,
   [baseApi.reducerPath]: baseApi.reducer,
 });
 
