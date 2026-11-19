@@ -19,15 +19,22 @@ Mở http://localhost:3000. Khi giải nén ZIP, mở terminal trong thư mục 
 ```sh
 npm run lint
 npm run typecheck
+npm test                # Jest + React Testing Library
+npm run test:coverage   # kèm báo cáo coverage (CI chạy lệnh này)
 npm run build
 npm start
 ```
+
+## Test
+
+Jest cấu hình qua `next/jest` (`jest.config.ts`), môi trường `jsdom`; test đặt cạnh file nguồn (`*.test.ts(x)`).
+Factory dữ liệu mẫu ở `src/lib/test-utils.tsx`. Code chạy ở server (guard, service) khai báo
+`@jest-environment node` ở đầu file test. Ngưỡng coverage đang áp theo từng module đã có test.
 
 Khung chưa có UI, logic nghiệp vụ, backend, xác thực hay phân quyền.
 Các URL hiện chỉ là trang trắng công khai; thư mục API chưa có handler.
 Không cần file môi trường để chạy khung này. `.env.example` dành cho bước tích hợp sau.
 Các thư mục rỗng có `.gitkeep` để được giữ khi commit Git.
-Không có store, schema, service hay test nghiệp vụ ở bước này.
 
 ## Phiên bản đã chốt
 
