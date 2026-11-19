@@ -24,3 +24,4 @@ export {
 } from "./model/selectors";
 export { CART_STORAGE_KEY, loadCart, saveCart } from "./cart.storage";
 export { CartPersistence } from "./components/CartPersistence";
+export { PurchaseActions } from "./components/PurchaseActions";
