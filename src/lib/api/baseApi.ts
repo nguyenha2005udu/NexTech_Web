@@ -6,7 +6,12 @@ import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
 export const baseApi = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({ baseUrl: "/api", credentials: "same-origin" }),
+  baseQuery: fetchBaseQuery({
+    baseUrl: "/api",
+    credentials: "same-origin",
+    // Lấy fetch lúc gọi thay vì lúc tạo: môi trường test (jsdom) không có fetch toàn cục khi import.
+    fetchFn: (input, init) => fetch(input, init),
+  }),
   tagTypes: ["Notification", "PriceAlert", "Cart"],
   endpoints: () => ({}),
 });
