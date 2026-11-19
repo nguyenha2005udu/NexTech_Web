@@ -19,4 +19,14 @@ export const routes = {
   register: "/register",
   forgotPassword: "/forgot-password",
   forbidden: "/403",
+  /** Khu quản trị (FDD 7, 8) — design/admin/00 §4.4 */
+  admin: {
+    dashboard: "/admin",
+    categories: "/admin/categories",
+    products: "/admin/products",
+    orders: "/admin/orders",
+    coupons: "/admin/coupons",
+    transactions: "/admin/transactions",
+    users: "/admin/users",
+  },
 } as const;

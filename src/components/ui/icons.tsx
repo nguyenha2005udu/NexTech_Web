@@ -346,3 +346,72 @@ export const NetworkIcon = createIcon("NetworkIcon", {
     "M15.625 14.5834H20.8334C21.4087 14.5834 21.875 15.0497 21.875 15.625V20.8334C21.875 21.4087 21.4087 21.875 20.8334 21.875H15.625C15.0497 21.875 14.5834 21.4087 14.5834 20.8334V15.625C14.5834 15.0497 15.0497 14.5834 15.625 14.5834Z",
   ],
 });
+
+// ===== Khu quản trị (design/admin/00 §2.2) — nét 24px, vẽ theo mockup admin =====
+const SA = 1.75;
+
+export const DashboardIcon = createIcon("DashboardIcon", {
+  box: 24,
+  stroke: SA,
+  paths: ["M3 3h7v9H3z", "M14 3h7v5h-7z", "M14 12h7v9h-7z", "M3 16h7v5H3z"],
+});
+
+export const ShapesIcon = createIcon("ShapesIcon", {
+  box: 24,
+  stroke: SA,
+  paths: [
+    "M12 3l4.5 7.5h-9z",
+    "M3.5 14h7v7h-7z",
+    "M17.5 21a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z",
+  ],
+});
+
+export const ArchiveIcon = createIcon("ArchiveIcon", {
+  box: 24,
+  stroke: SA,
+  paths: ["M3 3h18v5H3z", "M4.5 8v11a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V8", "M10 12h4"],
+});
+
+export const ReceiptIcon = createIcon("ReceiptIcon", {
+  box: 24,
+  stroke: SA,
+  paths: ["M5 2.5v19l2.33-1.5 2.34 1.5 2.33-1.5 2.33 1.5 2.34-1.5L19 21.5v-19l-2.33 1.5-2.34-1.5L12 4l-2.33-1.5L7.33 4z", "M9 8h6", "M9 12h6", "M9 16h4"],
+});
+
+export const TagIcon = createIcon("TagIcon", {
+  box: 24,
+  stroke: SA,
+  paths: [
+    "M12.59 2.59A2 2 0 0 0 11.17 2H4a2 2 0 0 0-2 2v7.17a2 2 0 0 0 .59 1.42l8.7 8.7a2.43 2.43 0 0 0 3.42 0l6.58-6.58a2.43 2.43 0 0 0 0-3.42z",
+    "M7.5 7.5h.01",
+  ],
+});
+
+export const CreditCardIcon = createIcon("CreditCardIcon", {
+  box: 24,
+  stroke: SA,
+  paths: ["M4 5h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z", "M2 10h20"],
+});
+
+export const UsersIcon = createIcon("UsersIcon", {
+  box: 24,
+  stroke: SA,
+  paths: [
+    "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+    "M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+    "M22 21v-2a4 4 0 0 0-3-3.87",
+    "M16 3.13a4 4 0 0 1 0 7.75",
+  ],
+});
+
+export const StoreIcon = createIcon("StoreIcon", {
+  box: 24,
+  stroke: SA,
+  paths: ["M3 9l1.5-5h15L21 9", "M4 9v11h16V9", "M3 9h18", "M9.5 20v-6h5v6"],
+});
+
+export const LogOutIcon = createIcon("LogOutIcon", {
+  box: 24,
+  stroke: SA,
+  paths: ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "M16 17l5-5-5-5", "M21 12H9"],
+});
