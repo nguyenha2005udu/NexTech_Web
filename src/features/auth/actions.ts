@@ -5,10 +5,10 @@
 // apiFetch ghi lại cookie lên domain web. Hợp đồng: Backend_NexTech NT.IDENTITY API_Spec §1.
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { z } from "zod";
 import { routes } from "@/config/routes";
-import { ApiError, apiFetch } from "@/lib/api/http";
-import type { ActionFailure, ActionResult } from "@/types/action";
+import { failed, invalid } from "@/lib/action-result";
+import { apiFetch } from "@/lib/api/http";
+import type { ActionResult } from "@/types/action";
 import {
   completeRegistrationSchema,
   loginSchema,
@@ -17,33 +17,18 @@ import {
   verifyOtpSchema,
 } from "./schemas";
 
-function invalid(error: z.ZodError): ActionFailure {
-  const fieldErrors: Record<string, string> = {};
-  for (const issue of error.issues) {
-    const key = issue.path.join(".");
-    if (key && !fieldErrors[key]) fieldErrors[key] = issue.message;
-  }
-  return { ok: false, message: error.issues[0]?.message ?? "Dữ liệu không hợp lệ", fieldErrors };
-}
-
 // Mã lỗi backend gắn được vào một ô của form
 const FIELD_BY_CODE: Record<string, string> = {
   "NT-IDN-1006": "email", // Email đã được sử dụng
   "NT-IDN-1007": "otp", // OTP sai, hết hạn hoặc vượt số lần thử
 };
 
-function failed(err: unknown): ActionFailure {
-  if (!(err instanceof ApiError)) throw err;
-  const field = err.code ? FIELD_BY_CODE[err.code] : undefined;
-  return { ok: false, message: err.message, ...(field && { fieldErrors: { [field]: err.message } }) };
-}
-
 async function call(path: string, body: unknown): Promise<ActionResult> {
   try {
     await apiFetch(path, { method: "POST", body });
     return { ok: true };
   } catch (err) {
-    return failed(err);
+    return failed(err, FIELD_BY_CODE);
   }
 }
 

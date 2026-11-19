@@ -28,7 +28,7 @@ export class ApiError extends Error {
   }
 }
 
-type Method = "GET" | "POST" | "PUT" | "DELETE";
+type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 function isErrorBody(body: unknown): body is ApiErrorBody {
   return typeof body === "object" && body !== null && "message" in body;
@@ -40,7 +40,21 @@ export function apiBaseUrl(): string {
   return url;
 }
 
+/** Gọi backend với body JSON (hoặc không body). */
 export async function apiFetch<T>(path: string, init: { method?: Method; body?: unknown } = {}): Promise<T> {
+  const hasBody = init.body !== undefined;
+  return send<T>(path, init.method ?? "GET", hasBody ? JSON.stringify(init.body) : undefined, hasBody ? "application/json" : undefined);
+}
+
+/**
+ * Gọi backend với body multipart (upload file). Không đặt Content-Type để fetch tự ghi boundary.
+ * Ví dụ: `POST /api/admin/products/:id/images` với field `file` (design/admin 03 §2.3).
+ */
+export async function apiFetchForm<T>(path: string, form: FormData, method: "POST" | "PUT" = "POST"): Promise<T> {
+  return send<T>(path, method, form);
+}
+
+async function send<T>(path: string, method: Method, payload: BodyInit | undefined, contentType?: string): Promise<T> {
   const store = await cookies();
   const cookieHeader = SESSION_COOKIES.flatMap((name) => {
     const value = store.get(name)?.value;
@@ -50,13 +64,13 @@ export async function apiFetch<T>(path: string, init: { method?: Method; body?: 
   let res: Response;
   try {
     res = await fetch(new URL(path, apiBaseUrl()), {
-      method: init.method ?? "GET",
+      method,
       headers: {
         Accept: "application/json",
-        ...(init.body !== undefined && { "Content-Type": "application/json" }),
+        ...(contentType && { "Content-Type": contentType }),
         ...(cookieHeader && { Cookie: cookieHeader }),
       },
-      body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
+      body: payload,
       cache: "no-store",
     });
   } catch {

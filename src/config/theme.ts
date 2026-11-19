@@ -78,3 +78,51 @@ export const antdTheme: ThemeConfig = {
     },
   },
 };
+
+// Khu quản trị dùng theme riêng màu xanh theo mockup (design/admin Q-03).
+// Lồng trong ConfigProvider của AppProviders: `inherit` giữ locale và các token chung (font…).
+export const adminColors = {
+  primary: "#1677ff",
+  siderBg: "#001529",
+  pageBg: "#f0f2f5",
+  money: "#f5222d",
+} as const;
+
+export const adminTheme: ThemeConfig = {
+  inherit: true,
+  token: {
+    colorPrimary: adminColors.primary,
+    colorLink: adminColors.primary,
+    borderRadius: 6,
+    borderRadiusLG: 8,
+    controlHeight: 32,
+    controlHeightLG: 40,
+  },
+  components: {
+    Layout: {
+      siderBg: adminColors.siderBg,
+      headerBg: colors.surface,
+      bodyBg: adminColors.pageBg,
+      headerHeight: 56,
+      headerPadding: "0 20px",
+    },
+    Menu: {
+      darkItemBg: adminColors.siderBg,
+      darkItemSelectedBg: adminColors.primary,
+    },
+    Table: {
+      headerBg: "#fafafa",
+      headerColor: "#8c8c8c",
+      cellPaddingBlock: 10,
+    },
+    Button: {
+      fontWeight: 500,
+      paddingInline: 15,
+      borderRadiusLG: 8,
+    },
+    Form: {
+      labelFontSize: 14,
+      itemMarginBottom: 16,
+    },
+  },
+};
