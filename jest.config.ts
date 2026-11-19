@@ -36,6 +36,8 @@ const config: Config = {
     "./src/lib/permissions.ts": MODULE_THRESHOLD,
     "./src/lib/auth/guards.ts": MODULE_THRESHOLD,
     "./src/features/cart/model/": MODULE_THRESHOLD,
+    "./src/features/cart/cart.storage.ts": MODULE_THRESHOLD,
+    "./src/features/cart/components/": MODULE_THRESHOLD,
   },
 };
 

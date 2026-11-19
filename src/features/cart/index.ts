@@ -22,3 +22,5 @@ export {
   selectSelectedItems,
   selectSelectedSubtotal,
 } from "./model/selectors";
+export { CART_STORAGE_KEY, loadCart, saveCart } from "./cart.storage";
+export { CartPersistence } from "./components/CartPersistence";
