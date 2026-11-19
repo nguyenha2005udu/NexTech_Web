@@ -27,17 +27,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const product = await productService.getBySlug(slug);
   if (!product) return {};
-  const image = product.images[0];
+  // Ảnh chia sẻ lấy từ ./opengraph-image.tsx (PNG 1200×630), không đặt openGraph.images ở đây.
   return {
     title: product.name,
     description: product.headline,
     alternates: { canonical: routes.product(slug) },
-    openGraph: {
-      title: product.name,
-      description: product.headline,
-      url: routes.product(slug),
-      images: image ? [{ url: image.src, alt: image.alt }] : undefined,
-    },
+    openGraph: { title: product.name, description: product.headline, url: routes.product(slug) },
   };
 }
 
