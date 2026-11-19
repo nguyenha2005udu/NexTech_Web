@@ -35,6 +35,7 @@ const config: Config = {
     "./src/features/catalog/hooks/useProductFilters.ts": MODULE_THRESHOLD,
     "./src/lib/permissions.ts": MODULE_THRESHOLD,
     "./src/lib/auth/guards.ts": MODULE_THRESHOLD,
+    "./src/features/cart/model/": MODULE_THRESHOLD,
   },
 };
 
