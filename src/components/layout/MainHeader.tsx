@@ -1,12 +1,13 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
-import { BellIcon, GridIcon, ShoppingBagIcon, SparkleIcon, UserIcon } from "@/components/ui/icons";
+import { BellIcon, GridIcon, ShoppingBagIcon, SparkleIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { categoryService } from "@/entities/category/service";
 import { CartBadge } from "@/features/cart";
 import { SearchBar, SearchBarView } from "@/features/catalog";
 import styles from "./StorefrontHeader.module.css";
+import { UserMenu } from "./UserMenu";
 
 // Header các trang trong — Figma 01.02–01.05 (thanh chính + điều hướng danh mục).
 export async function MainHeader() {
@@ -27,9 +28,7 @@ export async function MainHeader() {
             <Link href={routes.cart} className={styles.navItem}>
               <ShoppingBagIcon /> Giỏ hàng <CartBadge />
             </Link>
-            <Link href={routes.login} className={styles.navItem}>
-              <UserIcon /> Đăng nhập
-            </Link>
+            <UserMenu guestLabel="Đăng nhập" linkClassName={styles.navItem} />
           </nav>
         </div>
         <nav className={styles.categoryNav} aria-label="Danh mục sản phẩm">

@@ -116,6 +116,35 @@
   color: #fff;
 }
 
+/* ===== Người đang đăng nhập (dùng ở cả 2 header) ===== */
+.userMenu {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userName {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.logoutButton {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d0d2dd;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.logoutButton:hover {
+  color: var(--c-accent-soft);
+}
+
 /* ===== Header trang trong (01.02–01.05) ===== */
 .mainHeader {
   background: var(--c-header);
