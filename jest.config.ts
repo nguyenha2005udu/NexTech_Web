@@ -26,6 +26,8 @@ const config: Config = {
     "src/lib/**/*.{ts,tsx}",
     "!src/**/*.d.ts",
     "!src/**/index.ts",
+    "!src/lib/test-utils.tsx",
+    "!src/test/**",
   ],
   coverageThreshold: {
     global: {},
