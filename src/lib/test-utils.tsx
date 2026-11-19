@@ -1,5 +1,9 @@
-// Tiện ích dùng chung cho test (mục 12.3): factory dữ liệu mẫu. Chỉ import trong *.test.ts(x).
+// Tiện ích dùng chung cho test (mục 12.3): factory dữ liệu mẫu + render kèm store. Chỉ import trong *.test.ts(x).
+import type { ReactElement, ReactNode } from "react";
+import { Provider } from "react-redux";
+import { render, type RenderOptions } from "@testing-library/react";
 import type { Product, ProductFilters } from "@/entities/product";
+import { makeStore, type AppStore, type RootState } from "@/lib/store";
 
 let seq = 0;
 
@@ -30,4 +34,21 @@ export function makeProduct(override: Partial<Product> = {}): Product {
 /** Bộ lọc rỗng (mặc định khi URL không có tham số). */
 export function makeFilters(override: Partial<ProductFilters> = {}): ProductFilters {
   return { brands: [], rams: [], cpus: [], sort: "relevance", ...override };
+}
+
+type ProviderOptions = Omit<RenderOptions, "wrapper"> & { preloadedState?: Partial<RootState> };
+
+/**
+ * Render component cần Redux. Mỗi lần gọi tạo store MỚI (test độc lập thứ tự).
+ * Kiểm tra kết quả qua UI; `store` trả về chỉ dùng để dispatch chuẩn bị dữ liệu khi cần.
+ */
+export function renderWithProviders(
+  ui: ReactElement,
+  { preloadedState, ...options }: ProviderOptions = {},
+): ReturnType<typeof render> & { store: AppStore } {
+  const store = makeStore(preloadedState);
+  function Wrapper({ children }: { children: ReactNode }) {
+    return <Provider store={store}>{children}</Provider>;
+  }
+  return { store, ...render(ui, { wrapper: Wrapper, ...options }) };
 }
