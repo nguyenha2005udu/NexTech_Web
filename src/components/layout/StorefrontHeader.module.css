@@ -170,6 +170,10 @@
   margin-left: auto;
 }
 
+.cartLink {
+  position: relative;
+}
+
 .navItem {
   display: inline-flex;
   align-items: center;

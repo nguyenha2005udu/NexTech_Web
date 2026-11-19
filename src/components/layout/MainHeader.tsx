@@ -4,6 +4,7 @@ import { Logo } from "@/components/ui/Logo";
 import { BellIcon, GridIcon, ShoppingBagIcon, SparkleIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { categoryService } from "@/entities/category/service";
+import { CartBadge } from "@/features/cart";
 import { SearchBar, SearchBarView } from "@/features/catalog";
 import styles from "./StorefrontHeader.module.css";
 import { UserMenu } from "./UserMenu";
@@ -25,7 +26,7 @@ export async function MainHeader() {
               <BellIcon /> Thông báo
             </Link>
             <Link href={routes.cart} className={styles.navItem}>
-              <ShoppingBagIcon /> Giỏ hàng
+              <ShoppingBagIcon /> Giỏ hàng <CartBadge />
             </Link>
             <UserMenu guestLabel="Đăng nhập" linkClassName={styles.navItem} />
           </nav>

@@ -4,6 +4,7 @@ import { HeaderSwitch } from "@/components/layout/HeaderSwitch";
 import { HomeHeader } from "@/components/layout/HomeHeader";
 import { MainHeader } from "@/components/layout/MainHeader";
 import { StorefrontFooter } from "@/components/layout/StorefrontFooter";
+import { CartPersistence } from "@/features/cart";
 
 export default function Layout({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -12,6 +13,8 @@ export default function Layout({ children }: Readonly<{ children: ReactNode }>) 
       {children}
       <StorefrontFooter />
       <AssistantLauncher />
+      {/* FDD 4.1 — nạp/lưu giỏ của khách ở localStorage */}
+      <CartPersistence />
     </>
   );
 }
