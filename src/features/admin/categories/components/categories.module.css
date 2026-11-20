@@ -1,0 +1,57 @@
+/* FDD 7.1 — Quản lý danh mục (design/admin/02, ảnh assets/02-categories-list.png, 03-categories-modal.png) */
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.search {
+  width: 190px;
+}
+
+.statusSelect {
+  width: 150px;
+}
+
+.addButton {
+  margin-left: auto;
+}
+
+/* ===== Bảng ===== */
+.iconCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.iconImage {
+  object-fit: contain;
+}
+
+.muted {
+  color: #8c8c8c;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.linkButton {
+  height: auto;
+  padding: 0;
+}
+
+/* ===== Modal ===== */
+.fullWidth {
+  width: 100%;
+}
