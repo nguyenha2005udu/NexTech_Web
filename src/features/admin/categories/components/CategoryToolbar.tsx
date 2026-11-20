@@ -1,11 +1,10 @@
 "use client";
 
 // FDD 7.1 — Toolbar: tìm theo tên, lọc trạng thái, nút thêm (design/admin/02 §1.2). Trạng thái nằm trên URL.
-import { useEffect, useState } from "react";
 import { Button, Input, Select } from "antd";
 import { PlusIcon } from "@/components/ui/icons";
 import { useAdminListParams } from "@/hooks/useAdminListParams";
-import { useDebounce } from "@/hooks/useDebounce";
+import { useSearchParamInput } from "@/hooks/useSearchParamInput";
 import { CATEGORY_STATUS_OPTIONS } from "../category.rules";
 import styles from "./categories.module.css";
 
@@ -13,14 +12,7 @@ const STATUS_OPTIONS = [{ value: "", label: "Tất cả trạng thái" }, ...CAT
 
 export function CategoryToolbar() {
   const { get, setParams } = useAdminListParams();
-  const urlQuery = get("q") ?? "";
-  const [query, setQuery] = useState(urlQuery);
-  const debouncedQuery = useDebounce(query.trim(), 300);
-
-  // Gõ xong 300ms mới ghi lên URL (về trang 1 do useAdminListParams lo)
-  useEffect(() => {
-    if (debouncedQuery !== urlQuery) setParams({ q: debouncedQuery });
-  }, [debouncedQuery, urlQuery, setParams]);
+  const [query, setQuery] = useSearchParamInput("q");
 
   return (
     <div className={styles.toolbar}>
