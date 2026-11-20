@@ -2,6 +2,7 @@
 import { Alert, Col, Row } from "antd";
 import type { AdminOrderListItem } from "@/entities/order";
 import type { OverviewStats, RevenuePoint } from "@/entities/statistics";
+import type { DashboardSource } from "../load-dashboard";
 import { LatestOrdersTable } from "./LatestOrdersTable";
 import { OrderStatusBreakdown } from "./OrderStatusBreakdown";
 import { RevenueChart } from "./RevenueChart";
@@ -13,24 +14,26 @@ export interface DashboardViewProps {
   revenue: readonly RevenuePoint[];
   year: number;
   latestOrders: AdminOrderListItem[];
+  /** Nguồn dữ liệu backend báo lỗi (xem `loadDashboard`). */
+  failed?: readonly DashboardSource[];
 }
 
-export function DashboardView({ overview, revenue, year, latestOrders }: Readonly<DashboardViewProps>) {
+export function DashboardView({ overview, revenue, year, latestOrders, failed = [] }: Readonly<DashboardViewProps>) {
+  const partial = failed.length > 0 || (overview.unavailable?.length ?? 0) > 0;
+
   return (
     <div className={styles.page}>
-      {(overview.unavailable?.length ?? 0) > 0 && (
-        <Alert type="warning" showIcon title="Một số số liệu tạm thời chưa lấy được" />
-      )}
+      {partial && <Alert type="warning" showIcon title="Một số số liệu tạm thời chưa lấy được" />}
       <StatCards overview={overview} />
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={16}>
-          <RevenueChart items={revenue} year={year} />
+          <RevenueChart items={revenue} year={year} unavailable={failed.includes("revenue")} />
         </Col>
         <Col xs={24} lg={8}>
           <OrderStatusBreakdown items={overview.orders_by_status} />
         </Col>
       </Row>
-      <LatestOrdersTable orders={latestOrders} />
+      <LatestOrdersTable orders={latestOrders} unavailable={failed.includes("orders")} />
     </div>
   );
 }
