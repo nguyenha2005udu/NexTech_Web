@@ -1,0 +1,163 @@
+/* FDD 8.1 — Tổng quan (design/admin/01, ảnh assets/01-dashboard.png) */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ===== Thẻ số liệu ===== */
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  height: 100%;
+  min-height: 88px;
+  padding: 16px 18px;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.statIcon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+}
+
+.statIcon[data-tone="blue"] {
+  background: #e6f4ff;
+  color: #1677ff;
+}
+
+.statIcon[data-tone="green"] {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.statIcon[data-tone="purple"] {
+  background: #f9f0ff;
+  color: #722ed1;
+}
+
+.statIcon[data-tone="orange"] {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.statLabel {
+  margin: 0;
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.statValue {
+  margin: 2px 0 0;
+  color: #1f1f1f;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* ===== Khối có tiêu đề (biểu đồ, trạng thái, bảng) ===== */
+.panel {
+  height: 100%;
+}
+
+.panelTitle {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* ===== Biểu đồ cột CSS ===== */
+.chart {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+  height: 150px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chartCol {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.chartTrack {
+  display: flex;
+  flex: 1;
+  align-items: flex-end;
+}
+
+.chartBar {
+  width: 100%;
+  height: calc(var(--ratio) * 100%);
+  border-radius: 4px 4px 0 0;
+  background: linear-gradient(to top, #1677ff, #69b1ff);
+  transition: filter 0.15s;
+}
+
+.chartBar:hover {
+  filter: brightness(1.08);
+}
+
+.chartLabel {
+  margin-top: 6px;
+  color: #8c8c8c;
+  font-size: 11px;
+  text-align: center;
+}
+
+.chartEmpty {
+  margin: 8px 0 0;
+  color: #8c8c8c;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ===== Đơn theo trạng thái ===== */
+.statusList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.statusHead {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.statusPercent {
+  color: #8c8c8c;
+}
+
+/* ===== Bảng đơn mới nhất ===== */
+.orderCode {
+  color: #1f1f1f;
+  font-weight: 600;
+}
+
+.money {
+  color: #f5222d;
+  font-weight: 600;
+}
+
+.muted {
+  color: #8c8c8c;
+}
+
+.clickableRow {
+  cursor: pointer;
+}

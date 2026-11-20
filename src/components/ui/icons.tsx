@@ -378,6 +378,17 @@ export const ReceiptIcon = createIcon("ReceiptIcon", {
   paths: ["M5 2.5v19l2.33-1.5 2.34 1.5 2.33-1.5 2.33 1.5 2.34-1.5L19 21.5v-19l-2.33 1.5-2.34-1.5L12 4l-2.33-1.5L7.33 4z", "M9 8h6", "M9 12h6", "M9 16h4"],
 });
 
+export const BanknoteIcon = createIcon("BanknoteIcon", {
+  box: 24,
+  stroke: SA,
+  paths: [
+    "M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z",
+    "M12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z",
+    "M6 12h.01",
+    "M18 12h.01",
+  ],
+});
+
 export const TagIcon = createIcon("TagIcon", {
   box: 24,
   stroke: SA,
