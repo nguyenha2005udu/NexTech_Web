@@ -1,0 +1,61 @@
+/* FDD 8.3 — Mã giảm giá (design/admin/05, ảnh assets/08-coupons-list.png, 09-coupons-modal.png) */
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.search {
+  width: 190px;
+}
+
+.statusSelect {
+  width: 170px;
+}
+
+.addButton {
+  margin-left: auto;
+}
+
+/* ===== Bảng ===== */
+.code {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.value {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.muted {
+  color: #8c8c8c;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.linkButton {
+  height: auto;
+  padding: 0;
+}
+
+.activate {
+  color: #52c41a;
+}
+
+/* ===== Modal ===== */
+.fullWidth {
+  width: 100%;
+}
