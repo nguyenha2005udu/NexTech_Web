@@ -59,7 +59,10 @@ const columns: TableColumnsType<AdminOrderListItem> = [
   },
 ];
 
-export function LatestOrdersTable({ orders }: Readonly<{ orders: AdminOrderListItem[] }>) {
+export function LatestOrdersTable({
+  orders,
+  unavailable = false,
+}: Readonly<{ orders: AdminOrderListItem[]; unavailable?: boolean }>) {
   const router = useRouter();
 
   return (
@@ -71,7 +74,7 @@ export function LatestOrdersTable({ orders }: Readonly<{ orders: AdminOrderListI
         pagination={false}
         size="middle"
         scroll={{ x: 640 }}
-        locale={{ emptyText: "Chưa có đơn hàng" }}
+        locale={{ emptyText: unavailable ? "Chưa lấy được danh sách đơn hàng" : "Chưa có đơn hàng" }}
         rowClassName={() => styles.clickableRow}
         onRow={(record) => ({ onClick: () => router.push(orderViewHref(record.id)) })}
       />

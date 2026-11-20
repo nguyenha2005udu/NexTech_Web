@@ -6,7 +6,14 @@ import { formatVND } from "@/lib/format";
 import { toMonthlyBars } from "../revenue";
 import styles from "./dashboard.module.css";
 
-export function RevenueChart({ items, year }: Readonly<{ items: readonly RevenuePoint[]; year: number }>) {
+export interface RevenueChartProps {
+  items: readonly RevenuePoint[];
+  year: number;
+  /** Backend báo lỗi khi lấy doanh thu → cột rỗng + câu "Chưa lấy được…" thay vì "Chưa có doanh thu". */
+  unavailable?: boolean;
+}
+
+export function RevenueChart({ items, year, unavailable = false }: Readonly<RevenueChartProps>) {
   const bars = toMonthlyBars(items);
   const empty = bars.every((b) => b.revenue === 0);
 
@@ -31,7 +38,11 @@ export function RevenueChart({ items, year }: Readonly<{ items: readonly Revenue
           </li>
         ))}
       </ol>
-      {empty && <p className={styles.chartEmpty}>Chưa có doanh thu trong năm {year}</p>}
+      {unavailable ? (
+        <p className={styles.chartEmpty}>Chưa lấy được dữ liệu doanh thu</p>
+      ) : (
+        empty && <p className={styles.chartEmpty}>Chưa có doanh thu trong năm {year}</p>
+      )}
     </Card>
   );
 }

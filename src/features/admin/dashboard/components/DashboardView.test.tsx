@@ -89,6 +89,29 @@ describe("DashboardView", () => {
     expect(push).toHaveBeenCalledWith(`/admin/orders?view=${mockAdminOrders[1]?.id}`);
   });
 
+  it("API thống kê lỗi → cảnh báo đầu trang, 4 thẻ —, biểu đồ báo chưa lấy được", () => {
+    render(
+      <DashboardView
+        overview={{ total_orders: null, total_revenue: null, total_products: null, active_products: null, total_users: null, orders_by_status: [] }}
+        revenue={[]}
+        year={2026}
+        latestOrders={mockAdminOrders}
+        failed={["overview", "revenue"]}
+      />,
+    );
+    expect(screen.getByText("Một số số liệu tạm thời chưa lấy được")).toBeInTheDocument();
+    expect(screen.getAllByLabelText("Chưa lấy được dữ liệu")).toHaveLength(4);
+    expect(screen.getByText("Chưa lấy được dữ liệu doanh thu")).toBeInTheDocument();
+    expect(screen.queryByText("Chưa có doanh thu trong năm 2026")).not.toBeInTheDocument();
+    expect(screen.getByRole("row", { name: /#A1B2C3D4/ })).toBeInTheDocument();
+  });
+
+  it("danh sách đơn lỗi → bảng báo chưa lấy được, không phải 'Chưa có đơn hàng'", () => {
+    render(<DashboardView overview={mockOverview} revenue={[]} year={2026} latestOrders={[]} failed={["orders"]} />);
+    expect(screen.getByText("Chưa lấy được danh sách đơn hàng")).toBeInTheDocument();
+    expect(screen.getByText("Một số số liệu tạm thời chưa lấy được")).toBeInTheDocument();
+  });
+
   it("không có đơn thì hiện 'Chưa có đơn hàng'", () => {
     renderDashboard({}, []);
     expect(screen.getByText("Chưa có đơn hàng")).toBeInTheDocument();
