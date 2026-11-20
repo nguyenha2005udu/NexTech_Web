@@ -44,7 +44,9 @@ const config: Config = {
     "./src/features/admin/dashboard/": MODULE_THRESHOLD,
     "./src/features/admin/categories/": MODULE_THRESHOLD,
     "./src/features/admin/products/": MODULE_THRESHOLD,
+    "./src/features/admin/orders/": MODULE_THRESHOLD,
     "./src/entities/product/admin-service.ts": MODULE_THRESHOLD,
+    "./src/entities/order/admin-service.ts": MODULE_THRESHOLD,
     "./src/lib/api/query-string.ts": MODULE_THRESHOLD,
   },
 };

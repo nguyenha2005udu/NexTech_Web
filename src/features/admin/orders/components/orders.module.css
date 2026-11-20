@@ -1,0 +1,155 @@
+/* FDD 8.2 — Quản lý đơn hàng (design/admin/04, ảnh assets/06-orders-list.png, 07-orders-drawer.png) */
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.search {
+  width: 200px;
+}
+
+.statusSelect {
+  width: 170px;
+}
+
+/* ===== Bảng ===== */
+.orderCode {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.customer {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.4;
+}
+
+.muted {
+  color: #8c8c8c;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.money {
+  color: #f5222d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.linkButton {
+  height: auto;
+  padding: 0;
+}
+
+/* ===== Drawer ===== */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sectionLabel {
+  margin: 0 0 4px;
+  color: #8c8c8c;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.strong {
+  font-weight: 600;
+}
+
+.divider {
+  margin: 14px 0;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.lineImage {
+  display: block;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.lineImagePlaceholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  background: #f0f0f0;
+}
+
+.lineName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.summaryRow {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summaryRow > :last-child {
+  text-align: right;
+}
+
+.discount {
+  color: #52c41a;
+  white-space: nowrap;
+}
+
+.totalLabel {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.totalValue {
+  color: #f5222d;
+  font-size: 18px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.note {
+  color: #8c8c8c;
+  font-style: italic;
+}
+
+.timeline {
+  margin: 8px 0 16px;
+}
+
+.updater {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.alertLine {
+  margin: 0;
+}
