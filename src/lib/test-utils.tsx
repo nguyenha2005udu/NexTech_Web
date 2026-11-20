@@ -2,6 +2,9 @@
 import type { ReactElement, ReactNode } from "react";
 import { Provider } from "react-redux";
 import { render, type RenderOptions } from "@testing-library/react";
+import userEvent, { PointerEventsCheckLevel } from "@testing-library/user-event";
+import { StyleProvider } from "@ant-design/cssinjs";
+import { App } from "antd";
 import type { CartItem } from "@/features/cart";
 import type { Product, ProductFilters } from "@/entities/product";
 import { makeStore, type AppStore, type RootState } from "@/lib/store";
@@ -9,6 +12,28 @@ import { makeStore, type AppStore, type RootState } from "@/lib/store";
 let seq = 0;
 
 /** Sản phẩm mẫu hợp lệ; ghi đè trường cần thiết cho từng test. */
+/**
+ * Render component antd (Modal / Form / Select / Popconfirm…) trong `<App>` (để dùng `App.useApp().message`).
+ * `StyleProvider mock="server"`: antd không chèn CSS-in-JS vào DOM. Nếu chèn, mỗi `getComputedStyle` của jsdom
+ * (getByRole kiểm phần tử ẩn, userEvent kiểm pointer-events) phải duyệt hết stylesheet — đo được 1 lần
+ * `getByRole` ≈ 12 s khi chạy kèm `--coverage` → quá timeout. Test kiểm hành vi, không cần CSS thật.
+ */
+export function renderWithAntd(ui: ReactElement, options?: Omit<RenderOptions, "wrapper">) {
+  return render(ui, {
+    wrapper: ({ children }: { children: ReactNode }) => (
+      <StyleProvider mock="server">
+        <App>{children}</App>
+      </StyleProvider>
+    ),
+    ...options,
+  });
+}
+
+/** `userEvent.setup()` bỏ kiểm `pointer-events` (cũng gọi `getComputedStyle` lên cả cây trước mỗi thao tác). */
+export function setupUser() {
+  return userEvent.setup({ pointerEventsCheck: PointerEventsCheckLevel.Never });
+}
+
 export function makeProduct(override: Partial<Product> = {}): Product {
   seq += 1;
   return {
