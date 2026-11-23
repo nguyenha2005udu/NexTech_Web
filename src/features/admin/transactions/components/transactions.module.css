@@ -1,0 +1,77 @@
+/* FDD 8.2.4–8.2.6 — Quản lý thanh toán (design/admin/06, ảnh assets/10-transactions-list.png, 11-transactions-drawer.png) */
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.filterSelect {
+  width: 190px;
+}
+
+/* ===== Bảng ===== */
+.paymentCode {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.orderLink {
+  white-space: nowrap;
+}
+
+.muted {
+  color: #8c8c8c;
+}
+
+.money {
+  color: #f5222d;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 16px;
+  justify-content: flex-end;
+}
+
+.linkButton {
+  height: auto;
+  padding: 0;
+}
+
+.confirmLink {
+  color: #52c41a;
+}
+
+.confirmLink:not(:disabled):hover {
+  color: #73d13d;
+}
+
+/* ===== Drawer ===== */
+.descriptions :global(.ant-descriptions-row) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.descriptions :global(.ant-descriptions-item) {
+  padding: 10px 0;
+}
+
+.label {
+  color: #8c8c8c;
+}
+
+.value {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.mono {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 12px;
+  word-break: break-all;
+}
