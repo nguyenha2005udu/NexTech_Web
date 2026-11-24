@@ -9,6 +9,7 @@ import { Button, Checkbox, Modal } from "antd";
 import { ArrowRightIcon, ShoppingBagIcon, UserIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
+import { useCartRefresh } from "../hooks/useCartRefresh";
 import { useSignedIn } from "../hooks/useSignedIn";
 import { setAllSelected } from "../model/cartSlice";
 import {
@@ -31,6 +32,7 @@ export function CartView() {
   const subtotal = useAppSelector(selectSelectedSubtotal);
   const allSelected = useAppSelector(selectIsAllSelected);
   const signedIn = useSignedIn();
+  useCartRefresh();
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
   // Chưa đọc xong localStorage: chưa biết giỏ có gì, không hiện "giỏ trống" rồi nháy sang danh sách.

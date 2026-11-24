@@ -1,13 +1,26 @@
 import { act, screen, waitFor } from "@testing-library/react";
 import { makeCartItem, renderWithProviders, setupUser } from "@/lib/test-utils";
+import { getCartSnapshots } from "../actions";
 import { CartView } from "./CartView";
 
 const push = jest.fn();
 jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+jest.mock("../actions", () => ({ getCartSnapshots: jest.fn() }));
+const mockSnapshots = jest.mocked(getCartSnapshots);
+
 let sessionUser: unknown = null;
 beforeEach(() => {
   sessionUser = null;
+  // Mặc định server trả đúng giá/tồn kho đang lưu trong giỏ → không có gì thay đổi.
+  mockSnapshots.mockImplementation(async (input) => ({
+    ok: true,
+    data: (input as { productIds: string[] }).productIds.map((id) => ({
+      productId: id,
+      price: id === "a" ? 14_990_000 : 15_490_000,
+      available: true,
+    })),
+  }));
   global.fetch = jest.fn(() =>
     Promise.resolve({ json: () => Promise.resolve({ user: sessionUser }) }),
   ) as unknown as typeof fetch;
@@ -77,5 +90,49 @@ describe("CartView", () => {
     await user.click(screen.getByRole("button", { name: /Tiến hành đặt hàng/ }));
     expect(push).toHaveBeenCalledWith("/checkout");
     expect(screen.queryByText(/Bạn sẽ cần đăng nhập/)).not.toBeInTheDocument();
+  });
+
+  describe("đối chiếu giá và tồn kho với server", () => {
+    it("hỏi server theo các sản phẩm trong giỏ sau khi nạp giỏ", async () => {
+      renderCart();
+      await waitFor(() => expect(mockSnapshots).toHaveBeenCalledWith({ productIds: ["a", "b"] }));
+    });
+
+    it("không hỏi server khi giỏ trống hoặc chưa nạp xong", () => {
+      renderCart([]);
+      renderCart([asus], false);
+      expect(mockSnapshots).not.toHaveBeenCalled();
+    });
+
+    it("giá đổi thì hiện cảnh báo và cập nhật tạm tính", async () => {
+      mockSnapshots.mockResolvedValue({ ok: true, data: [{ productId: "a", price: 13_990_000, available: true }] });
+      renderCart([asus]);
+      expect(await screen.findByText(/Giá đã giảm từ 14.990.000 ₫ còn 13.990.000 ₫/)).toBeInTheDocument();
+    });
+
+    it("hết hàng thì bỏ chọn, khoá ô chọn và báo cho người dùng", async () => {
+      mockSnapshots.mockResolvedValue({ ok: true, data: [{ productId: "a", price: 14_990_000, available: false }] });
+      const { store } = renderCart([asus]);
+      expect(await screen.findByText(/đã hết hàng hoặc ngừng bán/)).toBeInTheDocument();
+      expect(screen.getByRole("checkbox", { name: /Chọn ASUS Vivobook 15/ })).toBeDisabled();
+      expect(store.getState().cart.items[0]?.selected).toBe(false);
+    });
+
+    it("tồn kho giảm thì kẹp số lượng và hiện 'Chỉ còn'", async () => {
+      mockSnapshots.mockResolvedValue({
+        ok: true,
+        data: [{ productId: "a", price: 14_990_000, stockQuantity: 2, available: true }],
+      });
+      const { store } = renderCart([{ ...asus, quantity: 5 }]);
+      expect(await screen.findByText("Chỉ còn 2 sản phẩm.")).toBeInTheDocument();
+      expect(store.getState().cart.items[0]?.quantity).toBe(2);
+    });
+
+    it("lỗi mạng thì giữ nguyên giỏ", async () => {
+      mockSnapshots.mockRejectedValue(new Error("network"));
+      const { store } = renderCart([asus]);
+      await waitFor(() => expect(mockSnapshots).toHaveBeenCalled());
+      expect(store.getState().cart.items[0]).toMatchObject({ price: 14_990_000, quantity: 1 });
+    });
   });
 });

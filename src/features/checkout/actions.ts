@@ -35,7 +35,10 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
   for (const item of items) {
     const product = products.find((p) => p.id === item.productId);
     if (!product) return { ok: false, message: "Có sản phẩm không còn được bán. Vui lòng kiểm tra lại giỏ hàng." };
-    if (!product.inStock) return { ok: false, message: `${product.name} đã hết hàng.` };
+    if (!product.inStock || product.stockQuantity === 0) return { ok: false, message: `${product.name} đã hết hàng.` };
+    if (product.stockQuantity !== undefined && item.quantity > product.stockQuantity) {
+      return { ok: false, message: `${product.name} chỉ còn ${product.stockQuantity} sản phẩm.` };
+    }
     lines.push({ productId: product.id, price: product.price, quantity: item.quantity });
   }
 

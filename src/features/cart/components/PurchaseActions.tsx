@@ -8,7 +8,7 @@ import { App, Button } from "antd";
 import { ArrowRightIcon, ShoppingBagIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { useAppDispatch } from "@/lib/hooks";
-import { MAX_QUANTITY_PER_ITEM, addItem, type CartProduct } from "../model/cartSlice";
+import { MAX_QUANTITY_PER_ITEM, addItem, maxQuantityFor, type CartProduct } from "../model/cartSlice";
 import styles from "./cart.module.css";
 
 type Props = { product: CartProduct; inStock: boolean };
@@ -18,6 +18,7 @@ export function PurchaseActions({ product, inStock }: Props) {
   const dispatch = useAppDispatch();
   const router = useRouter();
   const { message } = App.useApp();
+  const maxQuantity = maxQuantityFor(product.stockQuantity);
 
   function addToCart() {
     dispatch(addItem({ product, quantity }));
@@ -52,8 +53,8 @@ export function PurchaseActions({ product, inStock }: Props) {
           <Button
             aria-label="Tăng số lượng"
             className={styles.stepButton}
-            disabled={!inStock || quantity >= MAX_QUANTITY_PER_ITEM}
-            onClick={() => setQuantity((q) => Math.min(MAX_QUANTITY_PER_ITEM, q + 1))}
+            disabled={!inStock || quantity >= maxQuantity}
+            onClick={() => setQuantity((q) => Math.min(maxQuantity, q + 1))}
           >
             +
           </Button>
@@ -73,6 +74,9 @@ export function PurchaseActions({ product, inStock }: Props) {
         </Button>
       </div>
       {!inStock ? <p className={styles.outOfStock}>Sản phẩm tạm hết hàng.</p> : null}
+      {inStock && maxQuantity < MAX_QUANTITY_PER_ITEM ? (
+        <p className={styles.stockNote}>Chỉ còn {maxQuantity} sản phẩm.</p>
+      ) : null}
     </>
   );
 }
