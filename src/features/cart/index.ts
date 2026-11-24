@@ -26,4 +26,5 @@ export { CART_STORAGE_KEY, loadCart, saveCart } from "./cart.storage";
 export { CartPersistence } from "./components/CartPersistence";
 export { PurchaseActions } from "./components/PurchaseActions";
 export { CartBadge } from "./components/CartBadge";
+export { CartPage } from "./components/CartPage";
 export { CartView } from "./components/CartView";

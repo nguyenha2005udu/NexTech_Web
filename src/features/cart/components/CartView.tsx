@@ -38,16 +38,19 @@ export function CartView() {
 
   if (!items.length) {
     return (
-      <section className={styles.empty} aria-labelledby="cart-empty-title">
-        <ShoppingBagIcon size={28} />
-        <h2 id="cart-empty-title" className={styles.emptyTitle}>
-          Chưa có sản phẩm trong giỏ
-        </h2>
-        <p className={styles.emptyText}>Khám phá các thiết bị và thêm món bạn quan tâm.</p>
-        <Link href={routes.search} className={styles.primaryLink}>
-          <ArrowRightIcon /> Khám phá sản phẩm
-        </Link>
-      </section>
+      <>
+        <p className={styles.description}>Giỏ của bạn đang trống.</p>
+        <section className={styles.empty} aria-labelledby="cart-empty-title">
+          <ShoppingBagIcon size={28} />
+          <h2 id="cart-empty-title" className={styles.emptyTitle}>
+            Chưa có sản phẩm trong giỏ
+          </h2>
+          <p className={styles.emptyText}>Khám phá các thiết bị và thêm món bạn quan tâm.</p>
+          <Link href={routes.search} className={styles.primaryLink}>
+            <ArrowRightIcon /> Khám phá sản phẩm
+          </Link>
+        </section>
+      </>
     );
   }
 
@@ -58,54 +61,57 @@ export function CartView() {
   }
 
   return (
-    <div className={styles.layout}>
-      <section className={styles.card} aria-label="Sản phẩm trong giỏ">
-        {signedIn === false ? (
-          <p className={styles.notice}>Giỏ hàng được lưu trên trình duyệt này. Bạn sẽ cần đăng nhập để đặt hàng.</p>
-        ) : null}
-        <div className={styles.listHeader}>
-          <Checkbox
-            checked={allSelected}
-            indeterminate={!allSelected && selectedItems.length > 0}
-            onChange={(e) => dispatch(setAllSelected(e.target.checked))}
-          >
-            Chọn tất cả ({items.length})
-          </Checkbox>
-          <span aria-live="polite">Đã chọn {selectedItems.length} sản phẩm</span>
-        </div>
-        <ul className={styles.list}>
-          {items.map((item) => (
-            <CartItemRow key={item.productId} item={item} />
-          ))}
-        </ul>
-      </section>
+    <>
+      <p className={styles.description}>Chọn sản phẩm bạn muốn mua và kiểm tra số lượng.</p>
+      <div className={styles.layout}>
+        <section className={styles.card} aria-label="Sản phẩm trong giỏ">
+          {signedIn === false ? (
+            <p className={styles.notice}>Giỏ hàng được lưu trên trình duyệt này. Bạn sẽ cần đăng nhập để đặt hàng.</p>
+          ) : null}
+          <div className={styles.listHeader}>
+            <Checkbox
+              checked={allSelected}
+              indeterminate={!allSelected && selectedItems.length > 0}
+              onChange={(e) => dispatch(setAllSelected(e.target.checked))}
+            >
+              Chọn tất cả ({items.length})
+            </Checkbox>
+            <span aria-live="polite">Đã chọn {selectedItems.length} sản phẩm</span>
+          </div>
+          <ul className={styles.list}>
+            {items.map((item) => (
+              <CartItemRow key={item.productId} item={item} />
+            ))}
+          </ul>
+        </section>
 
-      <CartSummary subtotal={subtotal} selectedCount={selectedItems.length} onCheckout={checkout} />
+        <CartSummary subtotal={subtotal} selectedCount={selectedItems.length} onCheckout={checkout} />
 
-      <Modal
-        open={loginPromptOpen}
-        title="Đăng nhập để đặt hàng"
-        onCancel={() => setLoginPromptOpen(false)}
-        centered
-        footer={[
-          <Button key="stay" onClick={() => setLoginPromptOpen(false)}>
-            Tiếp tục xem giỏ
-          </Button>,
-          <Button
-            key="login"
-            type="primary"
-            icon={<UserIcon />}
-            onClick={() => router.push(routes.loginWithCallback(routes.checkout))}
-          >
-            Đăng nhập
-          </Button>,
-        ]}
-      >
-        <p>
-          Đăng nhập để nhập địa chỉ giao hàng và chọn phương thức thanh toán. Giỏ hàng hiện tại sẽ được giữ khi bạn
-          đăng nhập.
-        </p>
-      </Modal>
-    </div>
+        <Modal
+          open={loginPromptOpen}
+          title="Đăng nhập để đặt hàng"
+          onCancel={() => setLoginPromptOpen(false)}
+          centered
+          footer={[
+            <Button key="stay" onClick={() => setLoginPromptOpen(false)}>
+              Tiếp tục xem giỏ
+            </Button>,
+            <Button
+              key="login"
+              type="primary"
+              icon={<UserIcon />}
+              onClick={() => router.push(routes.loginWithCallback(routes.checkout))}
+            >
+              Đăng nhập
+            </Button>,
+          ]}
+        >
+          <p>
+            Đăng nhập để nhập địa chỉ giao hàng và chọn phương thức thanh toán. Giỏ hàng hiện tại sẽ được giữ khi bạn
+            đăng nhập.
+          </p>
+        </Modal>
+      </div>
+    </>
   );
 }
