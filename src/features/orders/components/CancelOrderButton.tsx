@@ -4,12 +4,15 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { App, Button } from "antd";
+import { baseApi } from "@/lib/api/baseApi";
+import { useAppDispatch } from "@/lib/hooks";
 import { cancelOrder } from "../actions";
 
 export function CancelOrderButton({ orderId }: { orderId: string }) {
   const [pending, startTransition] = useTransition();
   const { message, modal } = App.useApp();
   const router = useRouter();
+  const dispatch = useAppDispatch();
 
   function confirmCancel() {
     modal.confirm({
@@ -24,6 +27,7 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
             const result = await cancelOrder({ orderId });
             if (result.ok) {
               message.success("Đã huỷ đơn hàng");
+              dispatch(baseApi.util.invalidateTags(["Notification"]));
               router.refresh();
             } else {
               message.error(result.message);

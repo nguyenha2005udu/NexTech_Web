@@ -15,6 +15,7 @@ import type { Coupon } from "@/entities/coupon";
 import type { PaymentMethod } from "@/entities/transaction";
 import { removeItem, selectCartHydrated, selectSelectedItems } from "@/features/cart";
 import { formatVND } from "@/lib/format";
+import { baseApi } from "@/lib/api/baseApi";
 import { useAppDispatch, useAppSelector } from "@/lib/hooks";
 import { placeOrder } from "../actions";
 import { priceOrder } from "../pricing";
@@ -82,6 +83,8 @@ export function CheckoutView({ addresses, coupons, buyNow }: Props) {
         if (result.fieldErrors?.couponCode) setCouponCode(null);
         return;
       }
+      // Backend vừa sinh thông báo đơn hàng → làm mới chuông ngay thay vì chờ chu kỳ polling.
+      dispatch(baseApi.util.invalidateTags(["Notification"]));
       // Đặt từ giỏ thì bỏ các dòng đã đặt; "Mua ngay" không đụng tới giỏ.
       if (!buyNow) result.data.productIds.forEach((id) => dispatch(removeItem(id)));
       if (/^https?:\/\//.test(result.data.redirectTo)) window.location.assign(result.data.redirectTo);

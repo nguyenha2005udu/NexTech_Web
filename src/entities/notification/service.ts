@@ -7,7 +7,10 @@ import type { Notification, NotificationList, NotificationType } from "./types";
 //   list     → apiFetch<NotificationList>("/api/notifications")
 //   markRead → apiFetch("/api/notifications/read", { method: "POST", body: { ids } })  (không có ids = tất cả)
 // Mock giữ trong bộ nhớ tiến trình server; các service khác gọi `push` để sinh thông báo (đơn, thanh toán).
-const store: Notification[] = [];
+// Gắn vào globalThis: Route Handler và Server Action được bundle riêng nên mỗi bên có bản module riêng —
+// biến module thường sẽ không thấy thông báo do bên kia tạo. Bỏ khi dùng backend thật.
+const globalStore = globalThis as typeof globalThis & { __nextechNotifications?: Notification[] };
+const store: Notification[] = (globalStore.__nextechNotifications ??= []);
 
 export interface NewNotification {
   type: NotificationType;

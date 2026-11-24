@@ -1,6 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import type { Address } from "@/entities/address";
 import type { Coupon } from "@/entities/coupon";
+import { useGetNotificationsQuery } from "@/features/notifications";
 import { makeCartItem, renderWithProviders, setupUser } from "@/lib/test-utils";
 import { placeOrder } from "../actions";
 import type { CheckoutLine } from "../types";
@@ -155,6 +156,30 @@ describe("CheckoutView — đặt hàng", () => {
       paymentMethod: "cod",
     });
     expect(store.getState().cart.items.map((i) => i.productId)).toEqual(["p-lenovo"]);
+  });
+
+  it("đặt xong thì làm mới chuông thông báo (refetch ngay, không chờ polling)", async () => {
+    const fetchMock = jest.fn(async () => new Response(JSON.stringify({ items: [], unread: 0 }), { status: 200 }));
+    global.fetch = fetchMock as unknown as typeof fetch;
+    function BellProbe() {
+      useGetNotificationsQuery();
+      return null;
+    }
+    mockPlaceOrder.mockResolvedValue({
+      ok: true,
+      data: { orderId: "o-3", redirectTo: "/checkout/result?orderCode=o-3", productIds: ["p-asus"] },
+    });
+    const user = setupUser();
+    renderWithProviders(
+      <>
+        <BellProbe />
+        <CheckoutView addresses={[home, office]} coupons={coupons} buyNow={null} />
+      </>,
+      { preloadedState: { cart: { items: [asus], hydrated: true } } },
+    );
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await user.click(summary().getByRole("button", { name: /Đặt hàng/ }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 
   it("'Mua ngay' đặt xong không đụng tới giỏ", async () => {
