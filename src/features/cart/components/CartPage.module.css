@@ -1,0 +1,250 @@
+/* FDD 4.1 — Trang giỏ hàng (Figma 03.01–03.03) */
+.page {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 30px 16px 44px;
+  box-sizing: content-box;
+}
+
+.heading {
+  padding-top: 23px;
+}
+
+.title {
+  font-size: 42px;
+  font-weight: 700;
+  line-height: 50px;
+  letter-spacing: -1.1px;
+}
+
+.description {
+  padding-top: 8px;
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--c-ink-muted);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 362px;
+  align-items: start;
+  gap: 22px;
+  margin-top: 25px;
+}
+
+.card {
+  padding: 18px 20px;
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  background: var(--c-surface);
+}
+
+/* ===== Danh sách ===== */
+.notice {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 9px;
+  background: #eef4ff;
+  font-size: 13px;
+  line-height: 20px;
+  color: #2b4a8a;
+}
+
+.listHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: auto 66px minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.row:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.thumb {
+  display: grid;
+  place-items: center;
+  width: 66px;
+  height: 50px;
+  border-radius: 8px;
+  background: var(--c-surface-muted);
+}
+
+.thumb img {
+  width: 60px;
+  height: auto;
+}
+
+.name {
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 22px;
+  color: var(--c-ink);
+}
+
+.name:hover {
+  color: var(--c-primary-text);
+}
+
+.meta {
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--c-ink-muted);
+}
+
+.linePrice {
+  min-width: 120px;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: right;
+  color: var(--c-price);
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepButton:global(.ant-btn) {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+}
+
+.quantity {
+  min-width: 28px;
+  padding: 4px 8px;
+  border-radius: 7px;
+  background: var(--c-chip);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  color: var(--c-chip-text);
+}
+
+/* ===== Tóm tắt ===== */
+.summaryTitle {
+  padding-bottom: 14px;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 28px;
+  letter-spacing: -0.5px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.summaryRow dd {
+  font-weight: 800;
+}
+
+.summaryNote {
+  padding: 8px 0 14px;
+  border-bottom: 1px solid var(--c-border);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--c-ink-muted);
+}
+
+.totalRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0 16px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.total {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--c-price);
+}
+
+/* ===== Giỏ trống (03.02) ===== */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 25px;
+  padding: 48px 23px;
+  border: 1px solid var(--c-border);
+  border-radius: 14px;
+  background: var(--c-surface);
+  text-align: center;
+}
+
+.emptyTitle {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 31px;
+  letter-spacing: -0.7px;
+}
+
+.emptyText {
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--c-ink-muted);
+}
+
+.skeleton {
+  height: 260px;
+  margin-top: 25px;
+  border-radius: 14px;
+  background: var(--c-surface-muted);
+}
+
+@media (max-width: 991px) {
+  .title {
+    font-size: 30px;
+    line-height: 38px;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .row {
+    grid-template-columns: auto 66px minmax(0, 1fr);
+  }
+
+  .linePrice {
+    grid-column: 3;
+    text-align: left;
+  }
+
+  .stepper,
+  .row > :last-child {
+    grid-column: 3;
+    justify-self: start;
+  }
+}

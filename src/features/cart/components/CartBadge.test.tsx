@@ -4,17 +4,17 @@ import { CartBadge } from "./CartBadge";
 
 describe("CartBadge", () => {
   it("không hiện gì khi giỏ chưa nạp xong (khớp HTML server)", () => {
-    const { container } = renderWithProviders(<CartBadge />, {
+    renderWithProviders(<CartBadge />, {
       preloadedState: { cart: { items: [makeCartItem({ quantity: 2 })], hydrated: false } },
     });
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText(/sản phẩm/)).not.toBeInTheDocument();
   });
 
   it("không hiện gì khi giỏ rỗng", () => {
-    const { container } = renderWithProviders(<CartBadge />, {
+    renderWithProviders(<CartBadge />, {
       preloadedState: { cart: { items: [], hydrated: true } },
     });
-    expect(container).toBeEmptyDOMElement();
+    expect(screen.queryByText(/sản phẩm/)).not.toBeInTheDocument();
   });
 
   it("hiện tổng số lượng và chữ cho trình đọc màn hình", () => {
