@@ -22,3 +22,20 @@ describe("orderService.create (mock)", () => {
     expect((await orderService.create({ ...base, payment_method: "payos" })).status).toBe("processing");
   });
 });
+
+describe("orderService.getMine (mock)", () => {
+  it("đọc lại được đơn vừa tạo", async () => {
+    const created = await orderService.create({ ...base, payment_method: "payos" });
+    expect(await orderService.getMine(created.id)).toEqual({
+      id: created.id,
+      status: "processing",
+      total: 130,
+      payment_method: "payos",
+      payment_status: "pending",
+    });
+  });
+
+  it("đơn không tồn tại trả null", async () => {
+    expect(await orderService.getMine("khong-co")).toBeNull();
+  });
+});

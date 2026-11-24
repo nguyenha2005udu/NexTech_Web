@@ -6,3 +6,4 @@ export { CheckoutView } from "./components/CheckoutView";
 export type { CheckoutLine } from "./types";
 export { CheckoutPage } from "./components/CheckoutPage";
 export { parseBuyNowParams, toBuyNowLine } from "./buy-now";
+export { paymentResultOf, type PaymentResultKind } from "./payment-result";
