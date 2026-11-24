@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { notificationService } from "@/entities/notification/service";
 import { orderService } from "./service";
 
 const base = {
@@ -76,5 +77,35 @@ describe("orderService — danh sách, chi tiết, huỷ (mock)", () => {
 
   it("huỷ đơn không tồn tại trả null", async () => {
     expect(await orderService.cancel("khong-co")).toBeNull();
+  });
+});
+
+describe("orderService — sinh thông báo (mock)", () => {
+  const notificationsFor = async (id: string) =>
+    (await notificationService.list()).items.filter((n) => n.link?.includes(id));
+
+  it("đặt COD báo 'Đặt hàng thành công' kèm link tới đơn", async () => {
+    const created = await orderService.create({ ...base, payment_method: "cod" });
+    expect(await notificationsFor(created.id)).toEqual([
+      expect.objectContaining({ type: "order", title: "Đặt hàng thành công", link: `/account/orders/${created.id}` }),
+    ]);
+  });
+
+  it("đặt PayOS báo thêm 'Đang chờ thanh toán'", async () => {
+    const created = await orderService.create({ ...base, payment_method: "payos" });
+    const titles = (await notificationsFor(created.id)).map((n) => n.title).sort();
+    expect(titles).toEqual(["Đang chờ thanh toán", "Đặt hàng thành công"]);
+  });
+
+  it("huỷ đơn báo 'Đã huỷ đơn hàng'", async () => {
+    const created = await orderService.create({ ...base, payment_method: "cod" });
+    await orderService.cancel(created.id);
+    expect((await notificationsFor(created.id)).map((n) => n.title)).toContain("Đã huỷ đơn hàng");
+  });
+
+  it("huỷ đơn không tồn tại không sinh thông báo", async () => {
+    const before = (await notificationService.list()).items.length;
+    await orderService.cancel("khong-co");
+    expect((await notificationService.list()).items).toHaveLength(before);
   });
 });

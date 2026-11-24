@@ -1,7 +1,10 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { routes } from "@/config/routes";
 import { addressService } from "@/entities/address/service";
+import { notificationService } from "@/entities/notification/service";
 import { productService } from "@/entities/product/service";
+import { formatOrderCode } from "@/lib/format";
 import type { CreateOrderInput, CreatedOrder, MyOrderDetail, MyOrderSummary, OrderStatus } from "./types";
 
 // FDD 5.1 + 5.2 — Đơn hàng phía người mua. Gateway gắn danh tính từ cookie phiên; web không gửi userId, và backend chỉ
@@ -46,6 +49,22 @@ export const orderService = {
       discount_code: input.discount_code,
     };
     orders.set(order.id, order);
+    // Mock backend: order-service sinh thông báo khi tạo đơn (FDD 6.2). PayOS còn chờ thanh toán thì báo thêm.
+    const code = formatOrderCode(order.id);
+    await notificationService.push({
+      type: "order",
+      title: "Đặt hàng thành công",
+      body: `Đơn ${code} đã được ghi nhận và đang chờ xử lý.`,
+      link: routes.orderDetail(order.id),
+    });
+    if (order.payment_method === "payos") {
+      await notificationService.push({
+        type: "payment",
+        title: "Đang chờ thanh toán",
+        body: `NexTech đang chờ xác nhận thanh toán PayOS cho đơn ${code}.`,
+        link: routes.checkoutResult(order.id),
+      });
+    }
     return { id: order.id, status: order.status, total: order.total, payment_method: order.payment_method, checkout_url: null };
   },
 
@@ -82,6 +101,12 @@ export const orderService = {
     if (!order) return null;
     const cancelled: MyOrderDetail = { ...order, status: "cancelled" };
     orders.set(id, cancelled);
+    await notificationService.push({
+      type: "order",
+      title: "Đã huỷ đơn hàng",
+      body: `Đơn ${formatOrderCode(id)} đã được huỷ theo yêu cầu của bạn.`,
+      link: routes.orderDetail(id),
+    });
     return cancelled;
   },
 };
