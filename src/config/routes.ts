@@ -19,6 +19,8 @@ export const routes = {
   notifications: "/account/notifications",
   priceAlerts: "/account/price-alerts",
   orderLookup: "/account/orders",
+  /** Danh sách đơn lọc theo trạng thái (FDD 5.2.2) */
+  ordersByStatus: (status: string) => `/account/orders?${new URLSearchParams({ status }).toString()}`,
   orderDetail: (orderId: string) => `/account/orders/${encodeURIComponent(orderId)}`,
   login: "/login",
   /** Đăng nhập xong quay về `callbackUrl` (LoginForm đọc tham số này) */
