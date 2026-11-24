@@ -9,6 +9,8 @@ export type {
   CreateOrderInput,
   CreateOrderLine,
   CreatedOrder,
+  MyOrderDetail,
+  MyOrderItem,
   MyOrderSummary,
   OrderStatus,
 } from "./types";

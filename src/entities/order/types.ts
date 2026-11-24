@@ -99,3 +99,23 @@ export interface MyOrderSummary {
   /** Trạng thái giao dịch thanh toán; `null` khi chưa có bản ghi thanh toán */
   payment_status: PaymentStatus | null;
 }
+
+/** Một dòng sản phẩm trong đơn của người mua (snapshot lúc đặt). */
+export interface MyOrderItem {
+  product_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+/** Chi tiết đơn của chính người mua (FDD 5.2.1–5.2.3). Cũng là dòng của danh sách đơn. */
+export interface MyOrderDetail extends MyOrderSummary {
+  created_at: string;
+  items: MyOrderItem[];
+  /** Snapshot địa chỉ giao lúc đặt */
+  shipping: { recipient_name: string; phone_number: string; full_address: string } | null;
+  subtotal: number;
+  shipping_fee: number;
+  discount_amount: number;
+  discount_code: string | null;
+}
