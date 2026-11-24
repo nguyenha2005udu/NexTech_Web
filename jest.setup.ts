@@ -1,5 +1,6 @@
 // Bổ sung matcher DOM cho expect: toBeInTheDocument, toHaveAttribute, toBeDisabled…
 import "@testing-library/jest-dom";
+import { installFetchPolyfill } from "@/test/fetch-polyfill";
 
 // jsdom không có matchMedia; antd (Layout.Sider, Grid, responsive…) gọi nó khi mount.
 // Chỉ gắn trong môi trường jsdom — test chạy `@jest-environment node` không có window.
@@ -60,3 +61,6 @@ if (typeof window !== "undefined") {
   const original = window.getComputedStyle.bind(window);
   window.getComputedStyle = (elt: Element) => original(elt);
 }
+
+// RTK Query (fetchBaseQuery) cần Headers/Request/Response — jsdom không có.
+if (typeof window !== "undefined") installFetchPolyfill();
