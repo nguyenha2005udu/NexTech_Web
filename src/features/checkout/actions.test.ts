@@ -115,6 +115,18 @@ describe("placeOrder — kiểm dữ liệu ở server", () => {
     expect(await placeOrder(validInput)).toEqual({ ok: false, message: "ASUS Vivobook 15 đã hết hàng." });
   });
 
+  it("số lượng vượt tồn kho", async () => {
+    mockProducts.mockResolvedValue([{ ...asus, stockQuantity: 1 }]);
+    const result = await placeOrder({ ...validInput, items: [{ productId: "p-asus", quantity: 2 }] });
+    expect(result).toEqual({ ok: false, message: "ASUS Vivobook 15 chỉ còn 1 sản phẩm." });
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("tồn kho bằng 0 coi như hết hàng", async () => {
+    mockProducts.mockResolvedValue([{ ...asus, stockQuantity: 0 }]);
+    expect(await placeOrder(validInput)).toEqual({ ok: false, message: "ASUS Vivobook 15 đã hết hàng." });
+  });
+
   it("địa chỉ không thuộc người dùng", async () => {
     mockAddress.mockResolvedValue(null);
     expect(await placeOrder(validInput)).toMatchObject({ ok: false, fieldErrors: { addressId: "Chọn lại địa chỉ" } });

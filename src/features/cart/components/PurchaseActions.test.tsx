@@ -10,11 +10,11 @@ jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const product = makeProduct({ id: "p-asus", slug: "asus-vivobook-15", name: "ASUS Vivobook 15" });
 
-function setup(inStock = true) {
+function setup(inStock = true, stockQuantity?: number) {
   const user = userEvent.setup();
   const view = renderWithProviders(
     <App>
-      <PurchaseActions product={product} inStock={inStock} />
+      <PurchaseActions product={{ ...product, stockQuantity }} inStock={inStock} />
     </App>,
   );
   return { user, ...view };
@@ -57,5 +57,18 @@ describe("PurchaseActions", () => {
     expect(screen.getByRole("button", { name: /Mua ngay/ })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Thêm vào giỏ/ })).toBeDisabled();
     expect(screen.getByText("Sản phẩm tạm hết hàng.")).toBeInTheDocument();
+  });
+
+  it("tồn kho còn ít thì chặn tăng quá số còn lại và báo 'Chỉ còn'", async () => {
+    const { user } = setup(true, 2);
+    expect(screen.getByText("Chỉ còn 2 sản phẩm.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Tăng số lượng" }));
+    expect(screen.getByRole("button", { name: "Tăng số lượng" })).toBeDisabled();
+    expect(screen.getByLabelText("Số lượng đã chọn")).toHaveTextContent("2");
+  });
+
+  it("tồn kho dồi dào thì không hiện 'Chỉ còn'", () => {
+    setup(true, 50);
+    expect(screen.queryByText(/Chỉ còn/)).not.toBeInTheDocument();
   });
 });

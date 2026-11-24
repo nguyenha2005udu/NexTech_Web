@@ -43,4 +43,12 @@ describe("toBuyNowLine", () => {
     expect(toBuyNowLine(null, 1)).toBeNull();
     expect(toBuyNowLine(makeProduct({ inStock: false }), 1)).toBeNull();
   });
+
+  it("kẹp số lượng theo tồn kho", () => {
+    expect(toBuyNowLine(makeProduct({ stockQuantity: 2 }), 5)?.quantity).toBe(2);
+  });
+
+  it("tồn kho bằng 0 thì không cho mua ngay", () => {
+    expect(toBuyNowLine(makeProduct({ stockQuantity: 0 }), 1)).toBeNull();
+  });
 });
