@@ -42,6 +42,7 @@ const config: Config = {
     "./src/features/cart/cart.storage.ts": MODULE_THRESHOLD,
     "./src/features/cart/components/": MODULE_THRESHOLD,
     "./src/features/cart/hooks/": MODULE_THRESHOLD,
+    "./src/features/checkout/": MODULE_THRESHOLD,
     "./src/features/admin/dashboard/": MODULE_THRESHOLD,
     "./src/features/admin/categories/": MODULE_THRESHOLD,
     "./src/features/admin/products/": MODULE_THRESHOLD,
