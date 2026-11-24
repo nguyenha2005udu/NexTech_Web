@@ -9,6 +9,7 @@ export type {
   CreateOrderInput,
   CreateOrderLine,
   CreatedOrder,
+  MyOrderSummary,
   OrderStatus,
 } from "./types";
 export { ORDER_STATUS_META, ORDER_STATUSES, PRIMARY_ORDER_STATUSES, isOrderStatus, orderStatusMeta } from "./status";

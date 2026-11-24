@@ -13,7 +13,8 @@ import { failed, invalid } from "@/lib/action-result";
 import { requirePermission } from "@/lib/auth/guards";
 import type { ActionResult } from "@/types/action";
 import { priceOrder } from "./pricing";
-import { placeOrderSchema } from "./schemas";
+import { paymentResultOf } from "./payment-result";
+import { placeOrderSchema, retryPaymentSchema } from "./schemas";
 
 export type PlaceOrderResult = {
   orderId: string;
@@ -72,6 +73,30 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
         productIds: lines.map((l) => l.productId),
       },
     };
+  } catch (err) {
+    return failed(err);
+  }
+}
+
+/**
+ * FDD 5.1.2 — "Thử lại" ở trang kết quả (Figma 03.11): xin backend link thanh toán PayOS mới cho đơn của chính
+ * người dùng. Chỉ cho đơn PayOS đang ở trạng thái thất bại; backend kiểm lại lần nữa.
+ */
+export async function retryPayment(input: unknown): Promise<ActionResult<{ redirectTo: string }>> {
+  await requirePermission("order:own");
+  const parsed = retryPaymentSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+
+  const order = await orderService.getMine(parsed.data.orderId);
+  if (!order) return { ok: false, message: "Không tìm thấy đơn hàng" };
+  if (order.payment_method !== "payos" || paymentResultOf(order) !== "failed") {
+    return { ok: false, message: "Đơn hàng này không cần thanh toán lại" };
+  }
+
+  try {
+    const { checkout_url } = await orderService.retryPayment(order.id);
+    if (!checkout_url) return { ok: false, message: "Chưa tạo được link thanh toán mới. Vui lòng thử lại sau." };
+    return { ok: true, data: { redirectTo: checkout_url } };
   } catch (err) {
     return failed(err);
   }

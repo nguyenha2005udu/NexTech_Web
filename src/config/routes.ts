@@ -19,6 +19,7 @@ export const routes = {
   notifications: "/account/notifications",
   priceAlerts: "/account/price-alerts",
   orderLookup: "/account/orders",
+  orderDetail: (orderId: string) => `/account/orders/${encodeURIComponent(orderId)}`,
   login: "/login",
   /** Đăng nhập xong quay về `callbackUrl` (LoginForm đọc tham số này) */
   loginWithCallback: (callbackUrl: string) => `/login?${new URLSearchParams({ callbackUrl }).toString()}`,

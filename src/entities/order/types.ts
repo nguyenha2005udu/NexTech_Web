@@ -89,3 +89,13 @@ export interface CreatedOrder {
   payment_method: PaymentMethod;
   checkout_url: string | null;
 }
+
+/** Trạng thái đơn của chính người mua, dùng cho trang kết quả thanh toán (FDD 5.1.2). */
+export interface MyOrderSummary {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  payment_method: PaymentMethod;
+  /** Trạng thái giao dịch thanh toán; `null` khi chưa có bản ghi thanh toán */
+  payment_status: PaymentStatus | null;
+}
