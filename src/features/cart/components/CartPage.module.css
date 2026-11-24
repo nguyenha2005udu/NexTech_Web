@@ -248,3 +248,20 @@
     justify-self: start;
   }
 }
+
+/* Link điều hướng trông như nút primary (không lồng <button> trong <a>) */
+.primaryLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 43px;
+  padding: 0 16px;
+  border-radius: 9px;
+  background: var(--c-primary);
+  font-weight: 800;
+  color: #fff;
+}
+
+.primaryLink:hover {
+  filter: brightness(1.08);
+}
