@@ -29,3 +29,18 @@ export interface AdminCouponQuery {
   page?: number;
   limit?: number;
 }
+
+/** Mã giảm giá người mua thấy ở checkout (FDD 4.2.2) — tập con của AdminCoupon, không có số liệu quản trị. */
+export type Coupon = Pick<
+  AdminCoupon,
+  | "code"
+  | "description"
+  | "category"
+  | "discount_type"
+  | "discount_value"
+  | "min_order_value"
+  | "max_discount"
+  | "valid_from"
+  | "valid_until"
+  | "is_active"
+>;

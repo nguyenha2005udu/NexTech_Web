@@ -27,4 +27,9 @@ export const productService = {
   async getBySlug(slug: string): Promise<Product | null> {
     return mockProducts.find((p) => p.slug === slug) ?? null;
   },
+
+  /** Giá/tồn kho hiện tại theo id — dùng khi tính lại đơn ở server (mục 5). Id không tồn tại bị bỏ qua. */
+  async getManyByIds(ids: readonly string[]): Promise<Product[]> {
+    return mockProducts.filter((p) => ids.includes(p.id));
+  },
 };

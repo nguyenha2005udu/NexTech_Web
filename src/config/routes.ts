@@ -13,6 +13,8 @@ export const routes = {
   /** "Mua ngay" (FDD 4.1.1): đặt riêng 1 sản phẩm, không đụng tới giỏ */
   checkoutBuyNow: (slug: string, quantity: number) =>
     `/checkout?${new URLSearchParams({ buyNow: slug, qty: String(quantity) }).toString()}`,
+  /** Kết quả đặt hàng / thanh toán (FDD 5.1.2) — trang hỏi backend trạng thái thật theo orderCode */
+  checkoutResult: (orderCode: string) => `/checkout/result?${new URLSearchParams({ orderCode }).toString()}`,
   notifications: "/account/notifications",
   priceAlerts: "/account/price-alerts",
   orderLookup: "/account/orders",
