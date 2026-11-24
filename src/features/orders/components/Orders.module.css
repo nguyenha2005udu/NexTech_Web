@@ -1,0 +1,178 @@
+/* FDD 5.2 — Đơn hàng của tôi (Figma 04.05–04.07) */
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 30px 16px 64px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 34px;
+  letter-spacing: -0.6px;
+}
+
+.subtitle {
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 22px;
+  color: var(--c-ink-muted);
+}
+
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--c-border-input);
+  border-radius: 999px;
+  background: var(--c-surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.tab:hover {
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
+
+.tabActive {
+  border-color: var(--c-primary);
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.tabActive:hover {
+  color: #fff;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-surface);
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.code {
+  font-weight: 800;
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--c-ink-muted);
+}
+
+.total {
+  font-weight: 800;
+  color: var(--c-price);
+}
+
+.cardFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.link {
+  font-weight: 700;
+  color: var(--c-primary-text);
+}
+
+.empty {
+  padding: 48px 16px;
+  border: 1px dashed var(--c-border-input);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.strong {
+  font-weight: 700;
+}
+
+.detailLayout {
+  display: grid;
+  gap: 16px;
+}
+
+.section {
+  padding: 18px 20px;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-surface);
+}
+
+.sectionTitle {
+  margin-bottom: 10px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.sumRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 3px 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.sumTotal {
+  margin-top: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--c-border);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
