@@ -88,6 +88,7 @@ export default async function Page({ params }: Props) {
               summary: product.summary,
               price: product.price,
               images: product.images.slice(0, 1),
+              stockQuantity: product.stockQuantity,
             }}
             inStock={product.inStock}
           />

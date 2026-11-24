@@ -23,6 +23,7 @@ export const mockProducts: Product[] = [
     rating: 4.7,
     reviewCount: 12,
     inStock: true,
+    stockQuantity: 5,
     ram: "16 GB",
     cpu: "Intel Core i5",
     specs: LAPTOP_SPECS("Intel Core i5"),

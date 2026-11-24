@@ -265,3 +265,12 @@
 .primaryLink:hover {
   filter: brightness(1.08);
 }
+
+/* Giá đổi / hết hàng — cảnh báo ngắn dưới tên sản phẩm */
+.warning {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  font-weight: 700;
+  color: var(--c-price);
+}

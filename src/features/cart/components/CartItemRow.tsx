@@ -8,7 +8,7 @@ import { TrashIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { formatVND } from "@/lib/format";
 import { useAppDispatch } from "@/lib/hooks";
-import { removeItem, toggleSelected, updateQuantity, type CartItem } from "../model/cartSlice";
+import { MAX_QUANTITY_PER_ITEM, removeItem, toggleSelected, updateQuantity, type CartItem } from "../model/cartSlice";
 import styles from "./CartPage.module.css";
 
 export function CartItemRow({ item }: { item: CartItem }) {
@@ -19,6 +19,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
     <li className={styles.row}>
       <Checkbox
         checked={item.selected}
+        disabled={item.unavailable}
         onChange={() => dispatch(toggleSelected(item.productId))}
         aria-label={`Chọn ${item.name} để đặt hàng`}
       />
@@ -32,13 +33,27 @@ export function CartItemRow({ item }: { item: CartItem }) {
         <p className={styles.meta}>
           {item.summary} · SL {item.quantity}
         </p>
+        {item.unavailable ? (
+          <p className={styles.warning} role="status">
+            Sản phẩm đã hết hàng hoặc ngừng bán. Bạn có thể xóa khỏi giỏ.
+          </p>
+        ) : null}
+        {item.previousPrice !== undefined ? (
+          <p className={styles.warning} role="status">
+            Giá đã {item.price > item.previousPrice ? "tăng" : "giảm"} từ {formatVND(item.previousPrice)} còn{" "}
+            {formatVND(item.price)}.
+          </p>
+        ) : null}
+        {!item.unavailable && item.maxQuantity < MAX_QUANTITY_PER_ITEM ? (
+          <p className={styles.meta}>Chỉ còn {item.maxQuantity} sản phẩm.</p>
+        ) : null}
       </div>
       <span className={styles.linePrice}>{formatVND(item.price * item.quantity)}</span>
       <div className={styles.stepper} role="group" aria-label={`Số lượng ${item.name}`}>
         <Button
           aria-label="Giảm số lượng"
           className={styles.stepButton}
-          disabled={item.quantity <= 1}
+          disabled={item.unavailable || item.quantity <= 1}
           onClick={() => setQuantity(item.quantity - 1)}
         >
           −
@@ -49,7 +64,7 @@ export function CartItemRow({ item }: { item: CartItem }) {
         <Button
           aria-label="Tăng số lượng"
           className={styles.stepButton}
-          disabled={item.quantity >= item.maxQuantity}
+          disabled={item.unavailable || item.quantity >= item.maxQuantity}
           onClick={() => setQuantity(item.quantity + 1)}
         >
           +

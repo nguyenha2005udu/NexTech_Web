@@ -15,6 +15,8 @@ const cartItemSchema = z.object({
   price: z.number().nonnegative(),
   quantity: z.number().int().min(1),
   maxQuantity: z.number().int().min(1).max(MAX_QUANTITY_PER_ITEM),
+  previousPrice: z.number().nonnegative().optional(),
+  unavailable: z.boolean().optional(),
   selected: z.boolean(),
 });
 

@@ -17,15 +17,15 @@ export function parseBuyNowParams(params: RawSearchParams): { slug: string; quan
   return { slug, quantity };
 }
 
-/** Sản phẩm không còn bán / hết hàng → `null` (trang sẽ dùng giỏ hàng như bình thường). */
+/** Sản phẩm không còn bán / hết hàng → `null` (trang sẽ dùng giỏ hàng như bình thường). Số lượng kẹp theo tồn kho. */
 export function toBuyNowLine(product: Product | null, quantity: number): CheckoutLine | null {
-  if (!product || !product.inStock) return null;
+  if (!product || !product.inStock || product.stockQuantity === 0) return null;
   return {
     productId: product.id,
     name: product.name,
     summary: product.summary,
     imageSrc: product.images[0]?.src,
     price: product.price,
-    quantity,
+    quantity: Math.min(quantity, product.stockQuantity ?? MAX_QUANTITY_PER_LINE),
   };
 }
