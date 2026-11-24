@@ -426,3 +426,12 @@ export const LogOutIcon = createIcon("LogOutIcon", {
   stroke: SA,
   paths: ["M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", "M16 17l5-5-5-5", "M21 12H9"],
 });
+
+// Nút "Xóa" ở giỏ hàng (Figma 03.01) — nét 1.4167 như bộ icon 20px.
+export const TrashIcon = createIcon("TrashIcon", {
+  box: 20,
+  stroke: S20,
+  paths: [
+    "M3.33333 5H16.6667M8.33333 9.16667V14.1667M11.6667 9.16667V14.1667M4.16667 5L5 15.8333C5 16.7538 5.74619 17.5 6.66667 17.5H13.3333C14.2538 17.5 15 16.7538 15 15.8333L15.8333 5M7.5 5V3.33333C7.5 2.8731 7.8731 2.5 8.33333 2.5H11.6667C12.1269 2.5 12.5 2.8731 12.5 3.33333V5",
+  ],
+});

@@ -17,6 +17,8 @@ export const routes = {
   priceAlerts: "/account/price-alerts",
   orderLookup: "/account/orders",
   login: "/login",
+  /** Đăng nhập xong quay về `callbackUrl` (LoginForm đọc tham số này) */
+  loginWithCallback: (callbackUrl: string) => `/login?${new URLSearchParams({ callbackUrl }).toString()}`,
   register: "/register",
   forgotPassword: "/forgot-password",
   forbidden: "/403",
