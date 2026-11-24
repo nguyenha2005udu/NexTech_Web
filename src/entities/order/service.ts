@@ -23,6 +23,15 @@ export const orderService = {
     return { id: order.id, status: order.status, total: order.total, payment_method: order.payment_method, checkout_url: null };
   },
 
+  /**
+   * Tạo lại link thanh toán PayOS cho đơn chưa thanh toán xong (FDD 5.1.2 "Thử lại").
+   * TODO(backend): POST /api/orders/:id/payments → `{ checkout_url }`. Chưa có API nên mock trả `null`.
+   */
+  async retryPayment(id: string): Promise<{ checkout_url: string | null }> {
+    void id;
+    return { checkout_url: null };
+  },
+
   /** `null` khi không có đơn hoặc đơn không thuộc người đang đăng nhập. */
   async getMine(id: string): Promise<MyOrderSummary | null> {
     return createdOrders.get(id) ?? null;

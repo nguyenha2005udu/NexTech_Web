@@ -1,0 +1,122 @@
+/* FDD 5.1.2 — Kết quả đặt hàng / thanh toán (Figma 03.08–03.11) */
+.page {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 30px 16px 60px;
+  box-sizing: content-box;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 480px;
+  margin: 40px auto 0;
+  padding: 32px 28px 28px;
+  border: 1px solid var(--c-border);
+  border-radius: 16px;
+  background: var(--c-surface);
+  text-align: center;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.success {
+  background: #e7f7f0;
+  color: #036c4b;
+}
+
+.pending {
+  background: var(--c-primary-soft);
+  color: var(--c-primary);
+}
+
+.failed {
+  background: #fdecec;
+  color: var(--c-price);
+}
+
+.title {
+  padding-top: 16px;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 40px;
+  letter-spacing: -0.8px;
+}
+
+.lead {
+  padding-top: 8px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--c-ink-muted);
+}
+
+.details {
+  width: 100%;
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border);
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.row dt {
+  color: var(--c-ink-muted);
+}
+
+.row dd {
+  font-weight: 800;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Link điều hướng trông như nút (không lồng <button> trong <a>) */
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-weight: 800;
+}
+
+.primary {
+  background: var(--c-primary);
+  color: #fff;
+}
+
+.secondary {
+  border: 1px solid var(--c-border-input);
+  background: var(--c-surface);
+  color: var(--c-ink);
+}
+
+.primary:hover {
+  filter: brightness(1.08);
+}
+
+.secondary:hover {
+  border-color: var(--c-primary);
+  color: var(--c-primary-text);
+}
