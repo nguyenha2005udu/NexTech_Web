@@ -33,3 +33,44 @@ describe("mockReviewsFor", () => {
     }
   });
 });
+
+describe("reviewService.listPage", () => {
+  it("chia trang đánh giá mẫu, total là tổng của sản phẩm", async () => {
+    const total = mockReviewsFor("p-page").length;
+    const first = await reviewService.listPage("p-page", 1, 3);
+    const second = await reviewService.listPage("p-page", 2, 3);
+    expect(first).toMatchObject({ page: 1, total });
+    expect(first.items).toHaveLength(3);
+    expect(second.items[0]?.id).not.toBe(first.items[0]?.id);
+  });
+
+  it("trang quá giới hạn trả rỗng nhưng vẫn có total", async () => {
+    const result = await reviewService.listPage("p-page", 99, 3);
+    expect(result.items).toEqual([]);
+    expect(result.total).toBeGreaterThan(0);
+  });
+});
+
+describe("reviewService.create", () => {
+  const input = { orderId: "o-1", productId: "p-new", rating: 5, content: "Dùng rất tốt, đáng tiền." };
+
+  it("đánh giá mới lên đầu danh sách, tác giả được ẩn danh", async () => {
+    const review = await reviewService.create(input);
+    expect(review).toMatchObject({ productId: "p-new", rating: 5, authorLabel: "Người mua đã xác minh" });
+    expect(review).not.toHaveProperty("orderId");
+    expect((await reviewService.listByProduct("p-new"))[0]?.id).toBe(review.id);
+  });
+
+  it("total tăng thêm 1 sau khi viết", async () => {
+    const before = (await reviewService.listPage("p-total", 1, 1)).total;
+    await reviewService.create({ ...input, productId: "p-total" });
+    expect((await reviewService.listPage("p-total", 1, 1)).total).toBe(before + 1);
+  });
+
+  it("reviewedProductIds chỉ trả sản phẩm đã đánh giá trong đúng đơn đó", async () => {
+    await reviewService.create({ ...input, orderId: "o-ids", productId: "p-a" });
+    await reviewService.create({ ...input, orderId: "o-other", productId: "p-b" });
+    expect(await reviewService.reviewedProductIds("o-ids")).toEqual(["p-a"]);
+    expect(await reviewService.reviewedProductIds("o-none")).toEqual([]);
+  });
+});
