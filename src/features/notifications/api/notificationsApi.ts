@@ -6,10 +6,16 @@ import { baseApi } from "@/lib/api/baseApi";
 /** Polling 30s (giả định kỹ thuật #4); nâng lên SSE nếu backend hỗ trợ. */
 export const NOTIFICATION_POLL_MS = 30_000;
 
+/** Không truyền = trang đầu, cỡ mặc định. Chuông dùng `limit` nhỏ để chỉ lấy vài thông báo mới nhất. */
+export interface NotificationsQuery {
+  page?: number;
+  limit?: number;
+}
+
 export const notificationsApi = baseApi.injectEndpoints({
   endpoints: (build) => ({
-    getNotifications: build.query<NotificationList, void>({
-      query: () => "/notifications",
+    getNotifications: build.query<NotificationList, NotificationsQuery | void>({
+      query: (arg) => ({ url: "/notifications", params: { ...arg } }),
       providesTags: ["Notification"],
     }),
     /** Không truyền `ids` = đánh dấu tất cả đã đọc. */

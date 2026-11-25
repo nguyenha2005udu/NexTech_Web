@@ -1,10 +1,10 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import type { Notification, NotificationList, NotificationType } from "./types";
+import { NOTIFICATION_PAGE_SIZE, type Notification, type NotificationList, type NotificationType } from "./types";
 
 // FDD 6.2 — Thông báo của CHÍNH người đang đăng nhập (gateway gắn danh tính từ cookie phiên; web không gửi userId).
 // TODO(backend): thay mock bằng notification-service khi chốt hợp đồng:
-//   list     → apiFetch<NotificationList>("/api/notifications")
+//   list     → apiFetch<NotificationList>("/api/notifications?page=&limit=")
 //   markRead → apiFetch("/api/notifications/read", { method: "POST", body: { ids } })  (không có ids = tất cả)
 // Mock giữ trong bộ nhớ tiến trình server; các service khác gọi `push` để sinh thông báo (đơn, thanh toán).
 // Gắn vào globalThis: Route Handler và Server Action được bundle riêng nên mỗi bên có bản module riêng —
@@ -20,10 +20,16 @@ export interface NewNotification {
 }
 
 export const notificationService = {
-  /** Mới nhất trước. */
-  async list(): Promise<NotificationList> {
-    const items = [...store].sort((a, b) => b.created_at.localeCompare(a.created_at));
-    return { items, unread: items.filter((n) => !n.is_read).length };
+  /** Mới nhất trước, theo trang (`page` bắt đầu từ 1). `unread` và `total` tính trên toàn bộ. */
+  async list(page = 1, pageSize = NOTIFICATION_PAGE_SIZE): Promise<NotificationList> {
+    const all = [...store].sort((a, b) => b.created_at.localeCompare(a.created_at));
+    const start = (page - 1) * pageSize;
+    return {
+      items: all.slice(start, start + pageSize),
+      unread: all.filter((n) => !n.is_read).length,
+      page,
+      total: all.length,
+    };
   },
 
   /** Tạo thông báo (do backend sinh khi đơn/thanh toán đổi trạng thái; mock gọi trực tiếp). */

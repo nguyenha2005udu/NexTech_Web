@@ -13,8 +13,16 @@ export interface Notification {
   created_at: string;
 }
 
-/** `GET /api/notifications` — danh sách mới nhất trước kèm số chưa đọc (cho badge ở chuông). */
+/** Mặc định / giới hạn số thông báo mỗi trang */
+export const NOTIFICATION_PAGE_SIZE = 10;
+export const NOTIFICATION_MAX_PAGE_SIZE = 50;
+
+/** `GET /api/notifications?page=&limit=` — một trang, mới nhất trước, kèm tổng và số chưa đọc (cho badge ở chuông). */
 export interface NotificationList {
   items: Notification[];
+  /** Số chưa đọc của TOÀN BỘ thông báo, không chỉ trang này */
   unread: number;
+  page: number;
+  /** Tổng số thông báo (mọi trang) */
+  total: number;
 }

@@ -106,3 +106,97 @@
   border-radius: 12px;
   text-align: center;
 }
+
+/* Phân trang */
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pagerLink {
+  font-weight: 700;
+  color: var(--c-primary-text);
+}
+
+.pagerDisabled {
+  font-weight: 700;
+  color: var(--c-ink-muted);
+  opacity: 0.5;
+}
+
+/* Chuông + dropdown */
+.bellButton {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.panel {
+  width: min(360px, calc(100vw - 24px));
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  background: var(--c-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 16%);
+  color: var(--c-ink);
+  overflow: hidden;
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.panelList {
+  max-height: 340px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.panelItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--c-border);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panelItem:hover {
+  background: var(--c-primary-soft);
+}
+
+.panelBody {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.panelEmpty {
+  padding: 24px 14px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--c-ink-muted);
+}
+
+.panelFoot {
+  display: block;
+  padding: 10px 14px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--c-primary-text);
+}
