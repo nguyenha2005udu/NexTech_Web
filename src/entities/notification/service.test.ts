@@ -43,4 +43,21 @@ describe("notificationService (mock)", () => {
   it("markRead với id lạ không lỗi", async () => {
     await expect(notificationService.markRead(["khong-co"])).resolves.toBeUndefined();
   });
+
+  it("list phân trang: total/unread tính trên toàn bộ, items chỉ một trang", async () => {
+    const all = await notificationService.list(1, 1000);
+    const page1 = await notificationService.list(1, 2);
+    const page2 = await notificationService.list(2, 2);
+    expect(page1.items).toHaveLength(2);
+    expect(page1.total).toBe(all.total);
+    expect(page1.unread).toBe(all.unread);
+    expect(page2.items.map((n) => n.id)).toEqual(all.items.slice(2, 4).map((n) => n.id));
+    expect(page2.page).toBe(2);
+  });
+
+  it("trang vượt quá giới hạn trả danh sách rỗng nhưng vẫn có total", async () => {
+    const { items, total } = await notificationService.list(9999, 10);
+    expect(items).toEqual([]);
+    expect(total).toBeGreaterThan(0);
+  });
 });

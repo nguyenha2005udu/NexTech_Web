@@ -18,6 +18,15 @@ const note = (override: Partial<Notification> = {}): Notification => ({
   ...override,
 });
 
+/** Một trang dữ liệu giả; `total` mặc định = số item. */
+const page = (items: Notification[], unread: number, extra: Partial<Data> = {}): Data => ({
+  items,
+  unread,
+  page: 1,
+  total: items.length,
+  ...extra,
+});
+
 let server: Data;
 let fetchMock: jest.Mock;
 
@@ -28,12 +37,12 @@ function respond(body: unknown, status = 200) {
 const isMarkRead = (input: unknown) => String((input as Request).url).endsWith("/notifications/read");
 
 beforeEach(() => {
-  server = { items: [note(), note({ id: "n-2", title: "Thanh toán thành công", type: "payment", is_read: true, link: null })], unread: 1 };
+  server = page([note(), note({ id: "n-2", title: "Thanh toán thành công", type: "payment", is_read: true, link: null })], 1);
   fetchMock = jest.fn(async (input: Request) => {
     if (isMarkRead(input)) {
       const body = JSON.parse((await input.text()) || "{}") as { ids?: string[] };
       const items = server.items.map((n) => (!body.ids || body.ids.includes(n.id) ? { ...n, is_read: true } : n));
-      server = { items, unread: items.filter((n) => !n.is_read).length };
+      server = page(items, items.filter((n) => !n.is_read).length);
       return respond({ ok: true });
     }
     return respond(server);
@@ -50,7 +59,7 @@ describe("NotificationBell", () => {
   });
 
   it("không hiện badge khi đã đọc hết", async () => {
-    server = { items: [note({ is_read: true })], unread: 0 };
+    server = page([note({ is_read: true })], 0);
     renderWithProviders(<NotificationBell />);
     await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     expect(screen.queryByText(/chưa đọc/)).not.toBeInTheDocument();
@@ -65,7 +74,7 @@ describe("NotificationBell", () => {
   });
 
   it("badge hiện 99+ khi quá nhiều", async () => {
-    server = { items: [], unread: 150 };
+    server = page([], 150);
     renderWithProviders(<NotificationBell />);
     expect(await screen.findByText("99+")).toBeInTheDocument();
   });
@@ -81,7 +90,7 @@ describe("NotificationList", () => {
   });
 
   it("chưa có thông báo thì hiện trạng thái trống", () => {
-    renderWithProviders(<NotificationList initial={{ items: [], unread: 0 }} />);
+    renderWithProviders(<NotificationList initial={page([], 0)} />);
     expect(screen.getByText("Bạn chưa có thông báo nào.")).toBeInTheDocument();
   });
 
@@ -96,13 +105,13 @@ describe("NotificationList", () => {
   });
 
   it("thông báo không có link thì không có nút 'Xem chi tiết'; đã đọc thì không có nút đánh dấu", () => {
-    renderWithProviders(<NotificationList initial={{ items: [note({ link: null, is_read: true })], unread: 0 }} />);
+    renderWithProviders(<NotificationList initial={page([note({ link: null, is_read: true })], 0)} />);
     expect(screen.queryByRole("button", { name: "Xem chi tiết" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Đánh dấu đã đọc" })).not.toBeInTheDocument();
   });
 
   it("link ra ngoài trang bị bỏ qua", () => {
-    renderWithProviders(<NotificationList initial={{ items: [note({ link: "https://evil.example" })], unread: 1 }} />);
+    renderWithProviders(<NotificationList initial={page([note({ link: "https://evil.example" })], 1)} />);
     expect(screen.queryByRole("button", { name: "Xem chi tiết" })).not.toBeInTheDocument();
   });
 

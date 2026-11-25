@@ -14,27 +14,44 @@ const mockList = jest.mocked(notificationService.list);
 const mockMarkRead = jest.mocked(notificationService.markRead);
 
 const user: SessionUser = { id: "u-1", email: "a@example.com", full_name: "A", role: "user", avatar_url: null };
+const get = (query = "") => new Request(`http://localhost/api/notifications${query}`);
 const post = (body: unknown) =>
   new Request("http://localhost/api/notifications/read", { method: "POST", body: JSON.stringify(body) });
 
 beforeEach(() => {
   mockSession.mockResolvedValue(user);
-  mockList.mockResolvedValue({ items: [], unread: 0 });
+  mockList.mockResolvedValue({ items: [], unread: 0, page: 1, total: 0 });
 });
 afterEach(() => jest.clearAllMocks());
 
 describe("GET /api/notifications", () => {
   it("khách bị 401, không đọc dữ liệu", async () => {
     mockSession.mockResolvedValue(null);
-    expect((await GET()).status).toBe(401);
+    expect((await GET(get())).status).toBe(401);
     expect(mockList).not.toHaveBeenCalled();
   });
 
   it("người dùng nhận danh sách, không cache", async () => {
-    const res = await GET();
+    const res = await GET(get());
     expect(res.status).toBe(200);
     expect(res.headers.get("Cache-Control")).toBe("no-store");
-    expect(await res.json()).toEqual({ items: [], unread: 0 });
+    expect(await res.json()).toEqual({ items: [], unread: 0, page: 1, total: 0 });
+    expect(mockList).toHaveBeenCalledWith(1, 10);
+  });
+
+  it("đọc ?page= và ?limit= từ query", async () => {
+    await GET(get("?page=3&limit=5"));
+    expect(mockList).toHaveBeenCalledWith(3, 5);
+  });
+
+  it.each([
+    ["page sai", "?page=abc", 1, 10],
+    ["page âm", "?page=-2", 1, 10],
+    ["limit quá lớn bị chặn ở 50", "?limit=9999", 1, 50],
+    ["limit thập phân", "?limit=2.5", 1, 10],
+  ])("%s thì dùng giá trị an toàn", async (_label, query, page, limit) => {
+    await GET(get(query));
+    expect(mockList).toHaveBeenCalledWith(page, limit);
   });
 });
 
