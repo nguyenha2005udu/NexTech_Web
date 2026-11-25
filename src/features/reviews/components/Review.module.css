@@ -1,0 +1,17 @@
+/* FDD 5.2.4 — Form viết đánh giá */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.label {
+  font-weight: 700;
+}
+
+.error {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-price);
+}

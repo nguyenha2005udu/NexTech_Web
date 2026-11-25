@@ -39,7 +39,7 @@ const config: Config = {
     "./src/lib/action-result.ts": MODULE_THRESHOLD,
     "./src/lib/api/http.ts": MODULE_THRESHOLD,
     "./src/features/catalog/components/": MODULE_THRESHOLD,
-    "./src/features/reviews/ReviewSummary.tsx": MODULE_THRESHOLD,
+    "./src/features/reviews/": MODULE_THRESHOLD,
     "./src/entities/product/service.ts": MODULE_THRESHOLD,
     "./src/entities/review/service.ts": MODULE_THRESHOLD,
     "./src/features/cart/model/": MODULE_THRESHOLD,

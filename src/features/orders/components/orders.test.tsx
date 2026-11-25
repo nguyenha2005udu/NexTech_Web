@@ -71,6 +71,13 @@ describe("OrderList", () => {
 });
 
 describe("OrderDetail", () => {
+  it("hiện hành động theo từng sản phẩm do page ghép vào (ví dụ nút Viết đánh giá)", () => {
+    renderWithProviders(
+      <OrderDetail order={makeOrder()} itemActions={{ "p-1": <button>Viết đánh giá</button> }} />,
+    );
+    expect(screen.getAllByRole("button", { name: "Viết đánh giá" })).toHaveLength(1);
+  });
+
   it("hiện sản phẩm, địa chỉ và bảng tiền có giảm giá", () => {
     renderWithProviders(<OrderDetail order={makeOrder()} />);
     expect(screen.getByRole("heading", { level: 1, name: "Đơn hàng #A1B2C3D4" })).toBeInTheDocument();
