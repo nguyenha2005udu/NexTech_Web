@@ -17,6 +17,7 @@ export const routes = {
   /** Kết quả đặt hàng / thanh toán (FDD 5.1.2) — trang hỏi backend trạng thái thật theo orderCode */
   checkoutResult: (orderCode: string) => `/checkout/result?${new URLSearchParams({ orderCode }).toString()}`,
   notifications: "/account/notifications",
+  notificationsPage: (page: number) => (page > 1 ? `/account/notifications?page=${page}` : "/account/notifications"),
   priceAlerts: "/account/price-alerts",
   orderLookup: "/account/orders",
   /** Danh sách đơn lọc theo trạng thái (FDD 5.2.2) */

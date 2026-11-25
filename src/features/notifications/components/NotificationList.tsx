@@ -9,14 +9,21 @@ import { NOTIFICATION_TYPE_LABEL, isInternalLink, type Notification, type Notifi
 import { routes } from "@/config/routes";
 import { formatDateTime } from "@/lib/format";
 import { NOTIFICATION_POLL_MS, useGetNotificationsQuery, useMarkNotificationsReadMutation } from "../api/notificationsApi";
+import { NotificationPager } from "./NotificationPager";
 import styles from "./Notifications.module.css";
 
-export function NotificationList({ initial }: { initial: Data }) {
-  const { data } = useGetNotificationsQuery(undefined, { pollingInterval: NOTIFICATION_POLL_MS });
+type Props = { initial: Data; pageSize: number };
+
+export function NotificationList({ initial, pageSize }: Props) {
+  const { data } = useGetNotificationsQuery(
+    { page: initial.page, limit: pageSize },
+    { pollingInterval: NOTIFICATION_POLL_MS },
+  );
   const [markRead, { isLoading }] = useMarkNotificationsReadMutation();
   const router = useRouter();
   const { message } = App.useApp();
-  const { items, unread } = data ?? initial;
+  const { items, unread, total, page } = data ?? initial;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   async function mark(ids?: string[]) {
     try {
@@ -83,6 +90,7 @@ export function NotificationList({ initial }: { initial: Data }) {
           </li>
         ))}
       </ul>
+      <NotificationPager page={page} totalPages={totalPages} />
     </>
   );
 }
