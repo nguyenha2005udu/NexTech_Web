@@ -45,6 +45,8 @@ const config: Config = {
     "./src/features/checkout/": MODULE_THRESHOLD,
     "./src/features/orders/": MODULE_THRESHOLD,
     "./src/features/notifications/": MODULE_THRESHOLD,
+    "./src/features/price-alerts/": MODULE_THRESHOLD,
+    "./src/entities/price-alert/service.ts": MODULE_THRESHOLD,
     "./src/entities/notification/service.ts": MODULE_THRESHOLD,
     "./src/entities/notification/meta.ts": MODULE_THRESHOLD,
     "./src/features/admin/dashboard/": MODULE_THRESHOLD,
