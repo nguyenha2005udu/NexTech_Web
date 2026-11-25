@@ -1,7 +1,7 @@
 // FDD 2.3 — Chi tiết sản phẩm (Figma 01.05).
 // SSG + ISR 60s (mục 5): SEO quan trọng, giá/tồn kho đổi định kỳ. Khối đánh giá stream qua <Suspense>.
 // Ghép feature: catalog (thông tin) + reviews (đánh giá) + cart (Mua ngay / Thêm vào giỏ, 4.1.1).
-// Slot priceAlert (6.1.1) sẽ ghép khi có feature price-alerts.
+// + price-alerts (Theo dõi giá, 6.1.1) qua slot priceAlert.
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -13,6 +13,7 @@ import type { Product } from "@/entities/product";
 import { productService } from "@/entities/product/service";
 import { PurchaseActions } from "@/features/cart";
 import { ProductDetailView } from "@/features/catalog";
+import { PriceAlertButton } from "@/features/price-alerts";
 import { ReviewSummary, ReviewSummarySkeleton } from "@/features/reviews";
 import { breadcrumbJsonLd } from "@/lib/seo";
 
@@ -93,6 +94,7 @@ export default async function Page({ params }: Props) {
             inStock={product.inStock}
           />
         }
+        priceAlert={<PriceAlertButton productId={product.id} productName={product.name} price={product.price} />}
         reviews={
           <Suspense fallback={<ReviewSummarySkeleton />}>
             <ReviewSummary productId={product.id} rating={product.rating} reviewCount={product.reviewCount} />
