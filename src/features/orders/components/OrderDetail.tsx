@@ -1,4 +1,5 @@
 // FDD 5.2.3 + 5.2.5 — Chi tiết đơn (Figma 04.06 / 04.07). Server Component; nút huỷ chỉ hiện khi canCancel.
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { Tag } from "antd";
 import { routes } from "@/config/routes";
@@ -11,7 +12,13 @@ import styles from "./Orders.module.css";
 
 const METHOD_LABEL = { cod: "COD", payos: "PayOS / VietQR" } as const;
 
-export function OrderDetail({ order }: { order: MyOrderDetail }) {
+type Props = {
+  order: MyOrderDetail;
+  /** Hành động theo từng sản phẩm (key = product_id), ví dụ nút "Viết đánh giá" — page ghép từ feature reviews (5.2.4) */
+  itemActions?: Record<string, ReactNode>;
+};
+
+export function OrderDetail({ order, itemActions }: Props) {
   const meta = orderStatusMeta(order.status);
   const code = formatOrderCode(order.id);
 
@@ -43,7 +50,10 @@ export function OrderDetail({ order }: { order: MyOrderDetail }) {
                 <span>
                   {i.name} <span className={styles.muted}>× {i.quantity}</span>
                 </span>
-                <span className={styles.strong}>{formatVND(i.unit_price * i.quantity)}</span>
+                <span className={styles.itemSide}>
+                  {itemActions?.[i.product_id]}
+                  <span className={styles.strong}>{formatVND(i.unit_price * i.quantity)}</span>
+                </span>
               </li>
             ))}
           </ul>
