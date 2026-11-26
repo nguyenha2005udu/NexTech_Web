@@ -11,6 +11,7 @@ import { siteConfig } from "@/config/site";
 import { categoryService } from "@/entities/category/service";
 import type { Product } from "@/entities/product";
 import { productService } from "@/entities/product/service";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 import { PurchaseActions } from "@/features/cart";
 import { ProductDetailView } from "@/features/catalog";
 import { PriceAlertButton } from "@/features/price-alerts";
@@ -22,7 +23,7 @@ type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 60;
 
 export async function generateStaticParams() {
-  const products = await productService.listPopular();
+  const products = await orFallbackAtBuild(() => productService.listPopular(), []);
   return products.map((p) => ({ slug: p.slug }));
 }
 

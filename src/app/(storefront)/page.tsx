@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { siteConfig } from "@/config/site";
 import { categoryService } from "@/entities/category/service";
 import { productService } from "@/entities/product/service";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 import { HomeView } from "@/features/catalog";
 import { JsonLd } from "@/components/ui/JsonLd";
 
@@ -15,7 +16,10 @@ export const metadata: Metadata = {
 };
 
 export default async function Page() {
-  const [categories, featured] = await Promise.all([categoryService.list(), productService.listFeatured()]);
+  const [categories, featured] = await orFallbackAtBuild(
+    () => Promise.all([categoryService.list(), productService.listFeatured()]),
+    [[], []],
+  );
 
   return (
     <>
