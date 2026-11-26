@@ -23,6 +23,16 @@ const toAddress = (raw: RawAddress): Address => ({
   is_default: raw.is_default,
 });
 
+/** Body ghi địa chỉ (POST/PUT). `is_default` chỉ gửi khi đặt làm mặc định. */
+export interface AddressWriteInput {
+  recipient_name: string;
+  phone_number: string;
+  full_address: string;
+  is_default?: boolean;
+}
+
+const enc = encodeURIComponent;
+
 export const addressService = {
   /** Địa chỉ mặc định đứng đầu. */
   async listMine(): Promise<Address[]> {
@@ -38,5 +48,21 @@ export const addressService = {
       if (err instanceof ApiError && (err.status === 404 || err.status === 400)) return null;
       throw err;
     }
+  },
+
+  async create(input: AddressWriteInput): Promise<Address> {
+    return toAddress(await apiFetch<RawAddress>("/api/users/me/addresses", { method: "POST", body: input }));
+  },
+
+  async update(id: string, input: AddressWriteInput): Promise<Address> {
+    return toAddress(await apiFetch<RawAddress>(`/api/users/me/addresses/${enc(id)}`, { method: "PUT", body: input }));
+  },
+
+  async setDefault(id: string): Promise<void> {
+    await apiFetch(`/api/users/me/addresses/${enc(id)}/default`, { method: "PUT" });
+  },
+
+  async remove(id: string): Promise<void> {
+    await apiFetch(`/api/users/me/addresses/${enc(id)}`, { method: "DELETE" });
   },
 };

@@ -56,4 +56,26 @@ describe("addressService", () => {
     fetchMock.mockRejectedValueOnce(new ApiError(503, "x"));
     await expect(addressService.getMine("a1")).rejects.toThrow();
   });
+
+  it("create gửi POST với body đã chuẩn hoá", async () => {
+    fetchMock.mockResolvedValue(raw({ id: "new" }));
+    const created = await addressService.create({ recipient_name: "A", phone_number: "0900000001", full_address: "X" });
+    expect(fetchMock).toHaveBeenCalledWith("/api/users/me/addresses", {
+      method: "POST",
+      body: { recipient_name: "A", phone_number: "0900000001", full_address: "X" },
+    });
+    expect(created.id).toBe("new");
+  });
+
+  it("update, setDefault, remove gọi đúng đường dẫn và phương thức", async () => {
+    fetchMock.mockResolvedValue(raw());
+    await addressService.update("a1", { recipient_name: "A", phone_number: "0900000001", full_address: "X" });
+    await addressService.setDefault("a1");
+    await addressService.remove("a1");
+    expect(fetchMock.mock.calls.map(([path, init]) => [path, init?.method])).toEqual([
+      ["/api/users/me/addresses/a1", "PUT"],
+      ["/api/users/me/addresses/a1/default", "PUT"],
+      ["/api/users/me/addresses/a1", "DELETE"],
+    ]);
+  });
 });
