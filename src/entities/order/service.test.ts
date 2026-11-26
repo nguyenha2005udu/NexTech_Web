@@ -1,126 +1,213 @@
 /** @jest-environment node */
-jest.mock("@/entities/address/service", () => ({
-  addressService: {
-    getMine: jest.fn().mockResolvedValue({
-      id: "addr-home",
-      label: null,
-      recipient_name: "Người mua",
-      phone_number: "0900000002",
-      full_address: "1 Đại Cồ Việt, Hà Nội",
-      is_default: true,
-    }),
-  },
-}));
-jest.mock("@/entities/product/service", () => ({
-  productService: { getManyByIds: jest.fn().mockResolvedValue([]) },
-}));
-import { notificationService } from "@/entities/notification/service";
-import { orderService } from "./service";
+jest.mock("server-only", () => ({}));
+jest.mock("@/lib/api/http", () => {
+  class ApiError extends Error {
+    constructor(
+      readonly status: number,
+      message: string,
+      readonly code?: string,
+    ) {
+      super(message);
+    }
+  }
+  return { ApiError, apiFetch: jest.fn() };
+});
 
-const base = {
-  items: [{ product_id: "p-1", quantity: 1, unit_price: 100 }],
-  address_id: "addr-home",
-  discount_code: null,
-  subtotal: 100,
-  shipping_fee: 30,
-  discount_amount: 0,
-  total: 130,
-};
+import { ApiError, apiFetch } from "@/lib/api/http";
+import { orderService, paymentStatusOf } from "./service";
 
-describe("orderService.create (mock)", () => {
-  it("COD tạo đơn chờ xử lý, không có link thanh toán", async () => {
-    const order = await orderService.create({ ...base, payment_method: "cod" });
-    expect(order).toMatchObject({ status: "pending", total: 130, payment_method: "cod", checkout_url: null });
-    expect(order.id).toMatch(/^[0-9a-f-]{36}$/);
+const fetchMock = apiFetch as jest.Mock;
+type Call = [string, { method?: string; body?: unknown; headers?: Record<string, string> }?];
+const calls = (): Call[] => fetchMock.mock.calls as Call[];
+const pathsOf = (method: string) => calls().filter(([, i]) => (i?.method ?? "GET") === method).map(([p]) => p);
+
+const P1 = "p-1";
+const input = { items: [{ product_id: P1, quantity: 2 }], address_id: "addr-1", discount_code: null, payment_method: "cod" as const };
+
+/** Dựng phản hồi theo đường dẫn; mặc định giỏ backend rỗng. */
+function backend(over: Partial<Record<string, unknown>> = {}) {
+  const table: Record<string, unknown> = {
+    "GET /api/cart": { id: "cart", items: [] },
+    "POST /api/cart/items": { id: "ci-new" },
+    "POST /api/orders": { id: "o-1", status: "pending", total: 150000 },
+    "POST /api/payments": { id: "pay-1", payment_url: null },
+    ...over,
+  };
+  fetchMock.mockImplementation(async (path: string, init?: { method?: string }) => {
+    const key = `${init?.method ?? "GET"} ${path}`;
+    const hit = key in table ? table[key] : table[`${init?.method ?? "GET"} ${path.split("?")[0]}`];
+    if (hit instanceof Error) throw hit;
+    return hit;
+  });
+}
+
+const rawDetail = (over: Record<string, unknown> = {}) => ({
+  id: "o-1",
+  status: "pending",
+  created_at: "2026-11-26T03:00:00.000Z",
+  subtotal: "120000",
+  shipping_fee: "30000",
+  discount_amount: "0",
+  total: "150000",
+  items: [{ product: { id: P1, name: "Tai nghe", price: "120000" }, quantity: 1 }],
+  shipping_address: { full_address: "1 Đại Cồ Việt", recipient_name: null, phone_number: "0900000002" },
+  ...over,
+});
+
+afterEach(() => jest.resetAllMocks());
+
+describe("orderService.create", () => {
+  it("đẩy dòng vào giỏ backend rồi đặt đúng dòng đó, kèm Idempotency-Key", async () => {
+    backend();
+    const order = await orderService.create(input);
+
+    expect(calls().find(([p]) => p === "/api/cart/items")?.[1]?.body).toEqual({ product_id: P1, quantity: 2 });
+    const [, ordersInit] = calls().find(([p]) => p === "/api/orders")!;
+    expect(ordersInit?.body).toEqual({ address_id: "addr-1", cart_item_ids: ["ci-new"] });
+    expect(ordersInit?.headers?.["Idempotency-Key"]).toEqual(expect.any(String));
+    expect(order).toEqual({ id: "o-1", status: "pending", total: 150000, payment_method: "cod", checkout_url: null });
   });
 
-  it("PayOS tạo đơn ở trạng thái đang tạo", async () => {
-    expect((await orderService.create({ ...base, payment_method: "payos" })).status).toBe("processing");
+  it("không gửi giá, phí ship hay tổng tiền lên backend", async () => {
+    backend();
+    await orderService.create(input);
+    const body = calls().find(([p]) => p === "/api/orders")?.[1]?.body as Record<string, unknown>;
+    expect(Object.keys(body).sort()).toEqual(["address_id", "cart_item_ids"]);
+  });
+
+  it("giỏ backend đã có sản phẩm: dùng lại dòng đó, chỉ PUT khi số lượng khác", async () => {
+    backend({ "GET /api/cart": { id: "cart", items: [{ id: "ci-old", product: { id: P1 }, quantity: 1 }] } });
+    await orderService.create(input);
+    expect(pathsOf("POST")).not.toContain("/api/cart/items");
+    expect(calls().find(([p]) => p === "/api/cart/items/ci-old")?.[1]).toMatchObject({ method: "PUT", body: { quantity: 2 } });
+    expect(calls().find(([p]) => p === "/api/orders")?.[1]?.body).toMatchObject({ cart_item_ids: ["ci-old"] });
+  });
+
+  it("số lượng trùng khớp thì không PUT", async () => {
+    backend({ "GET /api/cart": { id: "cart", items: [{ id: "ci-old", product: { id: P1 }, quantity: 2 }] } });
+    await orderService.create(input);
+    expect(pathsOf("PUT")).toEqual([]);
+  });
+
+  it("có mã giảm giá thì gửi discount_code", async () => {
+    backend();
+    await orderService.create({ ...input, discount_code: "NEX200" });
+    expect(calls().find(([p]) => p === "/api/orders")?.[1]?.body).toMatchObject({ discount_code: "NEX200" });
+  });
+
+  it("tạo giao dịch thanh toán theo phương thức đã chọn", async () => {
+    backend();
+    await orderService.create(input);
+    expect(calls().find(([p]) => p === "/api/payments")?.[1]?.body).toEqual({ order_id: "o-1", method: "cod" });
+  });
+
+  it("PayOS: trả link thanh toán của backend", async () => {
+    backend({ "POST /api/payments": { id: "pay-1", payment_url: "https://pay.payos.vn/abc" } });
+    const order = await orderService.create({ ...input, payment_method: "payos" });
+    expect(order.checkout_url).toBe("https://pay.payos.vn/abc");
+  });
+
+  it("COD: không bao giờ có checkout_url", async () => {
+    backend({ "POST /api/payments": { id: "pay-1", payment_url: "https://x" } });
+    expect((await orderService.create(input)).checkout_url).toBeNull();
+  });
+
+  it("202 (đơn còn processing): không tạo thanh toán", async () => {
+    backend({ "POST /api/orders": { id: "o-1", status: "processing" } });
+    const order = await orderService.create(input);
+    expect(order).toMatchObject({ status: "processing", total: 0 });
+    expect(pathsOf("POST")).not.toContain("/api/payments");
+  });
+
+  it("tạo thanh toán lỗi thì đơn vẫn được trả về, không ném lỗi", async () => {
+    backend({ "POST /api/payments": new ApiError(503, "PayOS lỗi", "NT-PAY-1006") });
+    expect(await orderService.create({ ...input, payment_method: "payos" })).toMatchObject({ id: "o-1", checkout_url: null });
+  });
+
+  it("lỗi backend khi đặt đơn được ném lên cho action xử lý", async () => {
+    backend({ "POST /api/orders": new ApiError(400, "Giỏ hàng trống", "NT-ORD-1001") });
+    await expect(orderService.create(input)).rejects.toMatchObject({ status: 400, code: "NT-ORD-1001" });
   });
 });
 
-describe("orderService.getMine (mock)", () => {
-  it("đọc lại được đơn vừa tạo", async () => {
-    const created = await orderService.create({ ...base, payment_method: "payos" });
-    expect(await orderService.getMine(created.id)).toEqual({
-      id: created.id,
-      status: "processing",
-      total: 130,
-      payment_method: "payos",
+describe("orderService — đọc đơn", () => {
+  it("getDetailMine map chi tiết: tiền về số, trạng thái thanh toán suy từ đơn", async () => {
+    fetchMock.mockResolvedValue(rawDetail());
+    expect(await orderService.getDetailMine("o-1")).toMatchObject({
+      id: "o-1",
+      total: 150000,
+      subtotal: 120000,
+      shipping_fee: 30000,
+      payment_method: null,
       payment_status: "pending",
+      items: [{ product_id: P1, name: "Tai nghe", quantity: 1, unit_price: 120000 }],
+      shipping: { recipient_name: "", phone_number: "0900000002", full_address: "1 Đại Cồ Việt" },
     });
   });
 
-  it("đơn không tồn tại trả null", async () => {
-    expect(await orderService.getMine("khong-co")).toBeNull();
+  it.each([404, 400])("getDetailMine trả null khi backend báo %i", async (status) => {
+    fetchMock.mockRejectedValue(new ApiError(status, "x"));
+    expect(await orderService.getDetailMine("zz")).toBeNull();
   });
-});
 
-describe("orderService — danh sách, chi tiết, huỷ (mock)", () => {
-  it("chi tiết giữ snapshot tiền và địa chỉ lúc đặt", async () => {
-    const created = await orderService.create({ ...base, payment_method: "cod", discount_code: "NEX200", discount_amount: 20 });
-    expect(await orderService.getDetailMine(created.id)).toMatchObject({
-      id: created.id,
-      status: "pending",
-      subtotal: 100,
-      shipping_fee: 30,
-      discount_amount: 20,
-      discount_code: "NEX200",
-      items: [{ product_id: "p-1", quantity: 1, unit_price: 100 }],
-      shipping: { recipient_name: expect.any(String), full_address: expect.any(String) },
+  it("getDetailMine ném lại lỗi khác", async () => {
+    fetchMock.mockRejectedValue(new ApiError(503, "x"));
+    await expect(orderService.getDetailMine("o-1")).rejects.toThrow();
+  });
+
+  it("getMine chỉ trả phần tóm tắt, null khi không có đơn", async () => {
+    fetchMock.mockResolvedValueOnce(rawDetail({ status: "paid" }));
+    expect(await orderService.getMine("o-1")).toEqual({
+      id: "o-1",
+      status: "paid",
+      total: 150000,
+      payment_method: null,
+      payment_status: "success",
     });
+    fetchMock.mockRejectedValueOnce(new ApiError(404, "x"));
+    expect(await orderService.getMine("o-2")).toBeNull();
   });
 
-  it("danh sách mới nhất trước và lọc được theo trạng thái", async () => {
-    jest.useFakeTimers({ now: new Date("2026-11-24T03:00:00Z") });
-    const cod = await orderService.create({ ...base, payment_method: "cod" });
-    jest.setSystemTime(new Date("2026-11-24T04:00:00Z"));
-    const payos = await orderService.create({ ...base, payment_method: "payos" });
-    jest.useRealTimers();
-    const pendingIds = (await orderService.listMine("pending")).map((o) => o.id);
-    expect(pendingIds).toContain(cod.id);
-    expect(pendingIds).not.toContain(payos.id);
-    const allIds = (await orderService.listMine()).map((o) => o.id);
-    expect(allIds.indexOf(payos.id)).toBeLessThan(allIds.indexOf(cod.id));
-  });
-
-  it("huỷ đơn đổi trạng thái sang cancelled", async () => {
-    const created = await orderService.create({ ...base, payment_method: "cod" });
-    await orderService.cancel(created.id);
-    expect((await orderService.getMine(created.id))?.status).toBe("cancelled");
-  });
-
-  it("huỷ đơn không tồn tại trả null", async () => {
-    expect(await orderService.cancel("khong-co")).toBeNull();
+  it("listMine gọi API kèm bộ lọc trạng thái và đổi tiền về số", async () => {
+    fetchMock.mockResolvedValue({
+      items: [{ id: "o-1", total: "800000", status: "paid", created_at: "x", item_count: 2, product_name: "A", product_image: null }],
+      total: 1,
+      page: 1,
+    });
+    const list = await orderService.listMine("paid");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("/api/orders?status=paid&limit=100");
+    expect(list[0]).toMatchObject({ id: "o-1", total: 800000, item_count: 2 });
   });
 });
 
-describe("orderService — sinh thông báo (mock)", () => {
-  const notificationsFor = async (id: string) =>
-    (await notificationService.list()).items.filter((n) => n.link?.includes(id));
-
-  it("đặt COD báo 'Đặt hàng thành công' kèm link tới đơn", async () => {
-    const created = await orderService.create({ ...base, payment_method: "cod" });
-    expect(await notificationsFor(created.id)).toEqual([
-      expect.objectContaining({ type: "order", title: "Đặt hàng thành công", link: `/account/orders/${created.id}` }),
-    ]);
+describe("orderService — huỷ và thanh toán lại", () => {
+  it("cancel gọi PUT /api/orders/:id/cancel", async () => {
+    fetchMock.mockResolvedValue({ id: "o-1", status: "cancelled" });
+    await orderService.cancel("o-1");
+    expect(fetchMock).toHaveBeenCalledWith("/api/orders/o-1/cancel", { method: "PUT" });
   });
 
-  it("đặt PayOS báo thêm 'Đang chờ thanh toán'", async () => {
-    const created = await orderService.create({ ...base, payment_method: "payos" });
-    const titles = (await notificationsFor(created.id)).map((n) => n.title).sort();
-    expect(titles).toEqual(["Đang chờ thanh toán", "Đặt hàng thành công"]);
+  it("cancel để lỗi backend (vd. đơn không còn pending) nổi lên", async () => {
+    fetchMock.mockRejectedValue(new ApiError(400, "Không huỷ được", "NT-ORD-1008"));
+    await expect(orderService.cancel("o-1")).rejects.toMatchObject({ code: "NT-ORD-1008" });
   });
 
-  it("huỷ đơn báo 'Đã huỷ đơn hàng'", async () => {
-    const created = await orderService.create({ ...base, payment_method: "cod" });
-    await orderService.cancel(created.id);
-    expect((await notificationsFor(created.id)).map((n) => n.title)).toContain("Đã huỷ đơn hàng");
+  it("retryPayment xin link PayOS mới", async () => {
+    fetchMock.mockResolvedValue({ id: "pay-2", payment_url: "https://pay.payos.vn/new" });
+    expect(await orderService.retryPayment("o-1")).toEqual({ checkout_url: "https://pay.payos.vn/new" });
+    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: { order_id: "o-1", method: "payos" } });
   });
+});
 
-  it("huỷ đơn không tồn tại không sinh thông báo", async () => {
-    const before = (await notificationService.list()).items.length;
-    await orderService.cancel("khong-co");
-    expect((await notificationService.list()).items).toHaveLength(before);
+describe("paymentStatusOf", () => {
+  it.each([
+    ["paid", "success"],
+    ["shipped", "success"],
+    ["cancelled", "failed"],
+    ["failed", "failed"],
+    ["pending", "pending"],
+    ["processing", "pending"],
+  ] as const)("đơn %s → %s", (status, expected) => {
+    expect(paymentStatusOf(status)).toBe(expected);
   });
 });

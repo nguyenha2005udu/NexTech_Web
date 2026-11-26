@@ -23,7 +23,7 @@ const pendingCod = { id: "o-1", status: "pending" as const, total: 1, payment_me
 beforeEach(() => {
   mockSession.mockResolvedValue(user);
   mockGetMine.mockResolvedValue(pendingCod);
-  mockCancel.mockResolvedValue(null);
+  mockCancel.mockResolvedValue(undefined);
 });
 afterEach(() => jest.clearAllMocks());
 

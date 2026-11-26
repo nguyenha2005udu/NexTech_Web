@@ -75,7 +75,7 @@ export function OrderDetail({ order, itemActions }: Props) {
           <h2 id="pay-title" className={styles.sectionTitle}>
             Thanh toán
           </h2>
-          <p className={styles.muted}>Phương thức: {METHOD_LABEL[order.payment_method]}</p>
+          {order.payment_method ? <p className={styles.muted}>Phương thức: {METHOD_LABEL[order.payment_method]}</p> : null}
           <div className={styles.sumRow}>
             <span>Tạm tính</span>
             <span>{formatVND(order.subtotal)}</span>

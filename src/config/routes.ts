@@ -15,7 +15,9 @@ export const routes = {
   checkoutBuyNow: (slug: string, quantity: number) =>
     `/checkout?${new URLSearchParams({ buyNow: slug, qty: String(quantity) }).toString()}`,
   /** Kết quả đặt hàng / thanh toán (FDD 5.1.2) — trang hỏi backend trạng thái thật theo orderCode */
-  checkoutResult: (orderCode: string) => `/checkout/result?${new URLSearchParams({ orderCode }).toString()}`,
+  /** `method` chỉ là gợi ý hiển thị (backend chưa trả phương thức thanh toán ở API đơn), không quyết định trạng thái. */
+  checkoutResult: (orderCode: string, method?: "cod" | "payos") =>
+    `/checkout/result?${new URLSearchParams(method ? { orderCode, method } : { orderCode }).toString()}`,
   notifications: "/account/notifications",
   notificationsPage: (page: number) => (page > 1 ? `/account/notifications?page=${page}` : "/account/notifications"),
   priceAlerts: "/account/price-alerts",

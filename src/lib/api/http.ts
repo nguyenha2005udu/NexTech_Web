@@ -41,9 +41,18 @@ export function apiBaseUrl(): string {
 }
 
 /** Gọi backend với body JSON (hoặc không body). */
-export async function apiFetch<T>(path: string, init: { method?: Method; body?: unknown } = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init: { method?: Method; body?: unknown; headers?: Record<string, string> } = {},
+): Promise<T> {
   const hasBody = init.body !== undefined;
-  return send<T>(path, init.method ?? "GET", hasBody ? JSON.stringify(init.body) : undefined, hasBody ? "application/json" : undefined);
+  return send<T>(
+    path,
+    init.method ?? "GET",
+    hasBody ? JSON.stringify(init.body) : undefined,
+    hasBody ? "application/json" : undefined,
+    init.headers,
+  );
 }
 
 /**
@@ -79,7 +88,13 @@ export async function apiFetchForm<T>(path: string, form: FormData, method: "POS
   return send<T>(path, method, form);
 }
 
-async function send<T>(path: string, method: Method, payload: BodyInit | undefined, contentType?: string): Promise<T> {
+async function send<T>(
+  path: string,
+  method: Method,
+  payload: BodyInit | undefined,
+  contentType?: string,
+  extraHeaders?: Record<string, string>,
+): Promise<T> {
   const store = await cookies();
   const cookieHeader = SESSION_COOKIES.flatMap((name) => {
     const value = store.get(name)?.value;
@@ -92,6 +107,7 @@ async function send<T>(path: string, method: Method, payload: BodyInit | undefin
       method,
       headers: {
         Accept: "application/json",
+        ...extraHeaders,
         ...(contentType && { "Content-Type": contentType }),
         ...(cookieHeader && { Cookie: cookieHeader }),
       },

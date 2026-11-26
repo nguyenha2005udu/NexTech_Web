@@ -1,112 +1,197 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { routes } from "@/config/routes";
-import { addressService } from "@/entities/address/service";
-import { notificationService } from "@/entities/notification/service";
-import { productService } from "@/entities/product/service";
-import { formatOrderCode } from "@/lib/format";
-import type { CreateOrderInput, CreatedOrder, MyOrderDetail, MyOrderSummary, OrderStatus } from "./types";
+import type { PaymentStatus } from "@/entities/transaction";
+import { ApiError, apiFetch } from "@/lib/api/http";
+import { toQueryString } from "@/lib/api/query-string";
+import type { Paginated } from "@/types/api";
+import type {
+  CreateOrderInput,
+  CreatedOrder,
+  MyOrderDetail,
+  MyOrderListItem,
+  MyOrderSummary,
+  OrderStatus,
+} from "./types";
 
-// FDD 5.1 + 5.2 — Đơn hàng phía người mua. Gateway gắn danh tính từ cookie phiên; web không gửi userId, và backend chỉ
-// trả đơn của chính người đang đăng nhập (đơn của người khác → không tìm thấy).
-// TODO(backend): thay mock bằng order-service khi chốt hợp đồng phía người mua:
-//   create    → apiFetch<CreatedOrder>("/api/orders", { method: "POST", body })  (PayOS: backend trả `checkout_url`)
-//   listMine  → apiFetch<MyOrderDetail[]>("/api/orders?status=")
-//   getMine   → apiFetch<MyOrderDetail>(`/api/orders/${id}`)
-//   cancel    → apiFetch(`/api/orders/${id}/cancel`, { method: "POST" })
-// Mock giữ đơn trong bộ nhớ của tiến trình server để các trang đọc lại được đơn vừa tạo.
-const orders = new Map<string, MyOrderDetail>();
+// FDD 5.1 + 5.2 — Đơn hàng phía người mua, nối order-service qua API Gateway. Gateway gắn danh tính từ cookie phiên;
+// web không gửi userId, và backend chỉ trả đơn của chính người đang đăng nhập (đơn người khác → 404).
+//
+// Backend đặt đơn theo GIỎ HÀNG TRÊN SERVER (`/api/cart`), còn giỏ của web là local. Vì vậy `create` đẩy đúng các dòng
+// vừa chọn vào giỏ backend rồi đặt bằng `cart_item_ids`. Giá, phí ship, giảm giá do backend tính — web chỉ hiển thị.
 
-function summaryOf(o: MyOrderDetail): MyOrderSummary {
-  return { id: o.id, status: o.status, total: o.total, payment_method: o.payment_method, payment_status: o.payment_status };
+interface RawCart {
+  id: string;
+  items: Array<{ id: string; product: { id: string }; quantity: number }>;
+}
+interface RawCreated {
+  id: string;
+  status: OrderStatus;
+  total?: string | number;
+}
+interface RawShipping {
+  full_address: string;
+  recipient_name: string | null;
+  phone_number: string | null;
+}
+interface RawOrderDetail {
+  id: string;
+  status: OrderStatus;
+  created_at: string;
+  subtotal: string | number;
+  shipping_fee: string | number;
+  discount_amount: string | number;
+  total: string | number;
+  items: Array<{ product: { id: string; name: string | null; price: string | number }; quantity: number }>;
+  shipping_address: RawShipping | null;
+}
+interface RawListItem {
+  id: string;
+  total: string | number;
+  status: OrderStatus;
+  created_at: string;
+  item_count: number;
+  product_name: string | null;
+  product_image: string | null;
+}
+interface RawPayment {
+  id: string;
+  payment_url: string | null;
+}
+
+const LIST_LIMIT = 100;
+
+/** Backend không trả trạng thái thanh toán ở API đơn: suy ra từ trạng thái đơn. */
+export function paymentStatusOf(status: OrderStatus): PaymentStatus {
+  if (status === "paid" || status === "shipped" || status === "simulated_success") return "success";
+  if (status === "cancelled" || status === "failed") return "failed";
+  return "pending";
+}
+
+const isMissing = (err: unknown) => err instanceof ApiError && (err.status === 404 || err.status === 400);
+
+function toDetail(raw: RawOrderDetail): MyOrderDetail {
+  return {
+    id: raw.id,
+    status: raw.status,
+    total: Number(raw.total),
+    payment_method: null,
+    payment_status: paymentStatusOf(raw.status),
+    created_at: raw.created_at,
+    items: raw.items.map((i) => ({
+      product_id: i.product.id,
+      name: i.product.name ?? "Sản phẩm",
+      quantity: i.quantity,
+      unit_price: Number(i.product.price),
+    })),
+    shipping: raw.shipping_address && {
+      recipient_name: raw.shipping_address.recipient_name ?? "",
+      phone_number: raw.shipping_address.phone_number ?? "",
+      full_address: raw.shipping_address.full_address,
+    },
+    subtotal: Number(raw.subtotal),
+    shipping_fee: Number(raw.shipping_fee),
+    discount_amount: Number(raw.discount_amount),
+    // Backend không trả mã đã dùng ở API đơn.
+    discount_code: null,
+  };
+}
+
+/** Đưa đúng các dòng cần đặt vào giỏ backend (cập nhật số lượng nếu đã có) và trả id các dòng giỏ tương ứng. */
+async function syncCart(items: CreateOrderInput["items"]): Promise<string[]> {
+  const cart = await apiFetch<RawCart>("/api/cart");
+  const ids: string[] = [];
+  for (const item of items) {
+    const existing = cart.items.find((c) => c.product.id === item.product_id);
+    if (existing) {
+      if (existing.quantity !== item.quantity) {
+        await apiFetch(`/api/cart/items/${existing.id}`, { method: "PUT", body: { quantity: item.quantity } });
+      }
+      ids.push(existing.id);
+    } else {
+      const added = await apiFetch<{ id: string }>("/api/cart/items", {
+        method: "POST",
+        body: { product_id: item.product_id, quantity: item.quantity },
+      });
+      ids.push(added.id);
+    }
+  }
+  return ids;
+}
+
+function requestPayment(orderId: string, method: CreateOrderInput["payment_method"]) {
+  return apiFetch<RawPayment>("/api/payments", { method: "POST", body: { order_id: orderId, method } });
 }
 
 export const orderService = {
   async create(input: CreateOrderInput): Promise<CreatedOrder> {
-    const [products, address] = await Promise.all([
-      productService.getManyByIds(input.items.map((i) => i.product_id)),
-      addressService.getMine(input.address_id),
-    ]);
-    const order: MyOrderDetail = {
-      id: randomUUID(),
-      status: input.payment_method === "cod" ? "pending" : "processing",
-      total: input.total,
-      payment_method: input.payment_method,
-      payment_status: input.payment_method === "cod" ? null : "pending",
-      created_at: new Date().toISOString(),
-      items: input.items.map((i) => ({
-        product_id: i.product_id,
-        name: products.find((p) => p.id === i.product_id)?.name ?? "Sản phẩm",
-        quantity: i.quantity,
-        unit_price: i.unit_price,
-      })),
-      shipping: address
-        ? { recipient_name: address.recipient_name, phone_number: address.phone_number, full_address: address.full_address }
-        : null,
-      subtotal: input.subtotal,
-      shipping_fee: input.shipping_fee,
-      discount_amount: input.discount_amount,
-      discount_code: input.discount_code,
-    };
-    orders.set(order.id, order);
-    // Mock backend: order-service sinh thông báo khi tạo đơn (FDD 6.2). PayOS còn chờ thanh toán thì báo thêm.
-    const code = formatOrderCode(order.id);
-    await notificationService.push({
-      type: "order",
-      title: "Đặt hàng thành công",
-      body: `Đơn ${code} đã được ghi nhận và đang chờ xử lý.`,
-      link: routes.orderDetail(order.id),
+    const cartItemIds = await syncCart(input.items);
+    const order = await apiFetch<RawCreated>("/api/orders", {
+      method: "POST",
+      // Chống bấm đúp: cùng khoá thì backend trả lại đơn cũ.
+      headers: { "Idempotency-Key": randomUUID() },
+      body: {
+        address_id: input.address_id,
+        cart_item_ids: cartItemIds,
+        ...(input.discount_code && { discount_code: input.discount_code }),
+      },
     });
-    if (order.payment_method === "payos") {
-      await notificationService.push({
-        type: "payment",
-        title: "Đang chờ thanh toán",
-        body: `NexTech đang chờ xác nhận thanh toán PayOS cho đơn ${code}.`,
-        link: routes.checkoutResult(order.id),
-      });
+
+    let checkoutUrl: string | null = null;
+    // 202: đơn còn `processing` (saga chưa xong) → chưa tạo thanh toán được, trang kết quả sẽ hiện "đang xử lý".
+    if (order.status === "pending") {
+      try {
+        checkoutUrl = (await requestPayment(order.id, input.payment_method)).payment_url;
+      } catch (err) {
+        // Đơn đã tạo: không báo lỗi đặt hàng. Người dùng xem kết quả và thử lại thanh toán ở đó.
+        if (!(err instanceof ApiError)) throw err;
+      }
     }
-    return { id: order.id, status: order.status, total: order.total, payment_method: order.payment_method, checkout_url: null };
+    return {
+      id: order.id,
+      status: order.status,
+      total: Number(order.total ?? 0),
+      payment_method: input.payment_method,
+      checkout_url: input.payment_method === "payos" ? checkoutUrl : null,
+    };
   },
 
-  /**
-   * Tạo lại link thanh toán PayOS cho đơn chưa thanh toán xong (FDD 5.1.2 "Thử lại").
-   * TODO(backend): POST /api/orders/:id/payments → `{ checkout_url }`. Chưa có API nên mock trả `null`.
-   */
+  /** Tạo link thanh toán PayOS mới cho đơn chưa trả tiền (FDD 5.1.2 "Thử lại"). Backend chỉ cho khi đơn còn `pending`. */
   async retryPayment(id: string): Promise<{ checkout_url: string | null }> {
-    void id;
-    return { checkout_url: null };
+    const payment = await requestPayment(id, "payos");
+    return { checkout_url: payment.payment_url };
   },
 
   /** Trạng thái đơn cho trang kết quả. `null` khi không có đơn hoặc đơn không thuộc người đang đăng nhập. */
   async getMine(id: string): Promise<MyOrderSummary | null> {
-    const order = orders.get(id);
-    return order ? summaryOf(order) : null;
+    const order = await orderService.getDetailMine(id);
+    if (!order) return null;
+    return {
+      id: order.id,
+      status: order.status,
+      total: order.total,
+      payment_method: order.payment_method,
+      payment_status: order.payment_status,
+    };
   },
 
   /** Chi tiết đơn (FDD 5.2.3). `null` khi không có đơn hoặc đơn không thuộc người đang đăng nhập. */
   async getDetailMine(id: string): Promise<MyOrderDetail | null> {
-    return orders.get(id) ?? null;
+    try {
+      return toDetail(await apiFetch<RawOrderDetail>(`/api/orders/${encodeURIComponent(id)}`));
+    } catch (err) {
+      if (isMissing(err)) return null;
+      throw err;
+    }
   },
 
   /** Đơn của tôi, mới nhất trước; lọc theo trạng thái nếu có (FDD 5.2.1–5.2.2). */
-  async listMine(status?: OrderStatus): Promise<MyOrderDetail[]> {
-    return [...orders.values()]
-      .filter((o) => !status || o.status === status)
-      .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  async listMine(status?: OrderStatus): Promise<MyOrderListItem[]> {
+    const page = await apiFetch<Paginated<RawListItem>>(`/api/orders${toQueryString({ status, limit: LIST_LIMIT })}`);
+    return page.items.map((o) => ({ ...o, total: Number(o.total) }));
   },
 
-  /** Huỷ đơn (FDD 5.2.5). Điều kiện huỷ do `canCancel` kiểm trước; backend kiểm lại. `null` khi không có đơn. */
-  async cancel(id: string): Promise<MyOrderDetail | null> {
-    const order = orders.get(id);
-    if (!order) return null;
-    const cancelled: MyOrderDetail = { ...order, status: "cancelled" };
-    orders.set(id, cancelled);
-    await notificationService.push({
-      type: "order",
-      title: "Đã huỷ đơn hàng",
-      body: `Đơn ${formatOrderCode(id)} đã được huỷ theo yêu cầu của bạn.`,
-      link: routes.orderDetail(id),
-    });
-    return cancelled;
+  /** Huỷ đơn (FDD 5.2.5). Điều kiện huỷ do `canCancel` kiểm trước; backend kiểm lại (chỉ đơn `pending`). */
+  async cancel(id: string): Promise<void> {
+    await apiFetch(`/api/orders/${encodeURIComponent(id)}/cancel`, { method: "PUT" });
   },
 };

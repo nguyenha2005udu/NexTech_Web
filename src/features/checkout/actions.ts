@@ -1,18 +1,16 @@
 "use server";
 
 // FDD 5.1.1 — Đặt hàng (COD | PayOS/VietQR). Server Action là endpoint công khai nên đủ lớp bảo vệ (mục 10.3):
-// requirePermission("order:create") → zod → lấy giá/tồn kho THẬT ở server → kiểm địa chỉ của chính người dùng
-// → kiểm mã giảm giá → tính lại tiền bằng pricing.ts (mục 5: không tin giá client) → tạo đơn.
-// Backend (order-service) vẫn kiểm lại một lần nữa.
+// requirePermission("order:create") → zod → kiểm giá/tồn kho THẬT ở server → kiểm địa chỉ của chính người dùng → đặt đơn.
+// Giá, phí ship, mã giảm giá do BACKEND (order-service) tính và kiểm; web không gửi số tiền nào lên.
 import { routes } from "@/config/routes";
 import { addressService } from "@/entities/address/service";
-import { couponService } from "@/entities/coupon/service";
 import { orderService } from "@/entities/order/service";
 import { productService } from "@/entities/product/service";
 import { failed, invalid } from "@/lib/action-result";
+import { ApiError } from "@/lib/api/http";
 import { requirePermission } from "@/lib/auth/guards";
 import type { ActionResult } from "@/types/action";
-import { priceOrder } from "./pricing";
 import { paymentResultOf } from "./payment-result";
 import { placeOrderSchema, retryPaymentSchema } from "./schemas";
 
@@ -39,7 +37,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
     if (product.stockQuantity !== undefined && item.quantity > product.stockQuantity) {
       return { ok: false, message: `${product.name} chỉ còn ${product.stockQuantity} sản phẩm.` };
     }
-    lines.push({ productId: product.id, price: product.price, quantity: item.quantity });
+    lines.push({ productId: product.id, quantity: item.quantity });
   }
 
   const address = await addressService.getMine(addressId);
@@ -47,43 +45,30 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
     return { ok: false, message: "Địa chỉ giao hàng không hợp lệ", fieldErrors: { addressId: "Chọn lại địa chỉ" } };
   }
 
-  const coupon = couponCode ? await couponService.findByCode(couponCode) : null;
-  if (couponCode && !coupon) {
-    return { ok: false, message: "Mã giảm giá không tồn tại", fieldErrors: { couponCode: "Mã giảm giá không tồn tại" } };
-  }
-
-  const pricing = priceOrder(lines, coupon, new Date());
-  if (pricing.couponError) {
-    return { ok: false, message: pricing.couponError, fieldErrors: { couponCode: pricing.couponError } };
-  }
-
   try {
     const order = await orderService.create({
-      items: lines.map((l) => ({ product_id: l.productId, quantity: l.quantity, unit_price: l.price })),
+      items: lines.map((l) => ({ product_id: l.productId, quantity: l.quantity })),
       address_id: address.id,
-      discount_code: coupon?.code ?? null,
+      discount_code: couponCode,
       payment_method: paymentMethod,
-      subtotal: pricing.subtotal,
-      shipping_fee: pricing.shippingFee,
-      discount_amount: pricing.discount,
-      total: pricing.total,
     });
     return {
       ok: true,
       data: {
         orderId: order.id,
-        redirectTo: order.checkout_url ?? routes.checkoutResult(order.id),
+        redirectTo: order.checkout_url ?? routes.checkoutResult(order.id, paymentMethod),
         productIds: lines.map((l) => l.productId),
       },
     };
   } catch (err) {
-    return failed(err);
+    // NT-PRM-*: lỗi mã giảm giá → gắn vào ô mã. Mã khác hiện thông báo chung.
+    return failed(err, err instanceof ApiError && err.code?.startsWith("NT-PRM") ? { [err.code]: "couponCode" } : {});
   }
 }
 
 /**
  * FDD 5.1.2 — "Thử lại" ở trang kết quả (Figma 03.11): xin backend link thanh toán PayOS mới cho đơn của chính
- * người dùng. Chỉ cho đơn PayOS đang ở trạng thái thất bại; backend kiểm lại lần nữa.
+ * người dùng. Không áp dụng cho đơn COD / đơn chưa ở trạng thái thất bại; backend kiểm lại lần nữa.
  */
 export async function retryPayment(input: unknown): Promise<ActionResult<{ redirectTo: string }>> {
   await requirePermission("order:own");
@@ -92,7 +77,7 @@ export async function retryPayment(input: unknown): Promise<ActionResult<{ redir
 
   const order = await orderService.getMine(parsed.data.orderId);
   if (!order) return { ok: false, message: "Không tìm thấy đơn hàng" };
-  if (order.payment_method !== "payos" || paymentResultOf(order) !== "failed") {
+  if (order.payment_method === "cod" || paymentResultOf(order) !== "failed") {
     return { ok: false, message: "Đơn hàng này không cần thanh toán lại" };
   }
 

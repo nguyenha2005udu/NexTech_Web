@@ -34,6 +34,13 @@ describe("apiFetch", () => {
     expect(init.headers).toMatchObject({ "Content-Type": "application/json", Cookie: "access_token=at-1" });
   });
 
+  it("gửi thêm header tuỳ chọn (vd. Idempotency-Key)", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(201, { id: "o-1" }));
+    await apiFetch("/api/orders", { method: "POST", body: {}, headers: { "Idempotency-Key": "k-1" } });
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(init.headers).toMatchObject({ "Idempotency-Key": "k-1", "Content-Type": "application/json" });
+  });
+
   it("không gửi Content-Type khi không có body", async () => {
     fetchMock.mockResolvedValue(jsonResponse(200, []));
     await apiFetch("/api/admin/categories");

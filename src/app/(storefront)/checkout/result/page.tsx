@@ -24,5 +24,9 @@ export default async function Page({ searchParams }: Props) {
   const order = await orderService.getMine(orderCode);
   if (!order) notFound();
 
-  return <PaymentResult order={order} />;
+  // `?method=` chỉ là gợi ý hiển thị phương thức (backend chưa trả ở API đơn); trạng thái luôn lấy từ backend.
+  const hint = (await searchParams).method;
+  const method = hint === "cod" || hint === "payos" ? hint : null;
+
+  return <PaymentResult order={{ ...order, payment_method: order.payment_method ?? method }} />;
 }

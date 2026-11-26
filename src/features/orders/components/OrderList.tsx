@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { Tag } from "antd";
 import { routes } from "@/config/routes";
-import { orderStatusMeta, type MyOrderDetail } from "@/entities/order";
+import { orderStatusMeta, type MyOrderListItem } from "@/entities/order";
 import { formatDate, formatOrderCode, formatVND } from "@/lib/format";
 import styles from "./Orders.module.css";
 
-export function OrderList({ orders, filtered }: { orders: MyOrderDetail[]; filtered: boolean }) {
+export function OrderList({ orders, filtered }: { orders: MyOrderListItem[]; filtered: boolean }) {
   if (!orders.length) {
     return (
       <div className={styles.empty}>
@@ -24,8 +24,8 @@ export function OrderList({ orders, filtered }: { orders: MyOrderDetail[]; filte
     <ul className={styles.list}>
       {orders.map((o) => {
         const meta = orderStatusMeta(o.status);
-        const first = o.items[0]?.name ?? "Đơn hàng";
-        const more = o.items.length - 1;
+        const first = o.product_name ?? "Đơn hàng";
+        const more = o.item_count - 1;
         return (
           <li key={o.id} className={styles.card}>
             <div className={styles.cardHead}>
