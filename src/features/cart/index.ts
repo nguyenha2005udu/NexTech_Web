@@ -1,17 +1,20 @@
 // Public API của feature cart (FDD 4.1).
 export {
   MAX_QUANTITY_PER_ITEM,
+  maxQuantityFor,
   addItem,
   cartReducer,
   clearCart,
   hydrateCart,
   removeItem,
   setAllSelected,
+  syncItems,
   toggleSelected,
   updateQuantity,
   initialCartState,
   type CartItem,
   type CartProduct,
+  type CartSnapshot,
   type CartState,
 } from "./model/cartSlice";
 export {
@@ -22,7 +25,10 @@ export {
   selectSelectedItems,
   selectSelectedSubtotal,
 } from "./model/selectors";
+export { getCartSnapshots } from "./actions";
 export { CART_STORAGE_KEY, loadCart, saveCart } from "./cart.storage";
 export { CartPersistence } from "./components/CartPersistence";
 export { PurchaseActions } from "./components/PurchaseActions";
 export { CartBadge } from "./components/CartBadge";
+export { CartPage } from "./components/CartPage";
+export { CartView } from "./components/CartView";

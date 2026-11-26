@@ -53,3 +53,9 @@
   color: var(--c-primary-text);
   text-decoration: underline;
 }
+
+.stockNote {
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}

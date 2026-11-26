@@ -110,6 +110,16 @@ async function list(query: Record<string, string | number | undefined>): Promise
   return { ...page, items: page.items.map(fromListItem) };
 }
 
+async function fetchDetail(id: string, revalidate: number): Promise<Product | null> {
+  try {
+    return fromDetail(await apiFetchPublic<RawDetail>(`/api/products/${encodeURIComponent(id)}`, revalidate));
+  } catch (err) {
+    // 404: không có / ngừng bán. 400: id sai định dạng.
+    if (err instanceof ApiError && (err.status === 404 || err.status === 400)) return null;
+    throw err;
+  }
+}
+
 export const productService = {
   async listFeatured(): Promise<Product[]> {
     return (await list({ sort: "rating_desc", limit: 8 })).items;
@@ -143,13 +153,14 @@ export const productService = {
     return { items, total: page.total };
   },
 
-  async getBySlug(slug: string): Promise<Product | null> {
-    try {
-      return fromDetail(await apiFetchPublic<RawDetail>(`/api/products/${encodeURIComponent(slug)}`, REVALIDATE));
-    } catch (err) {
-      // 404: không có / ngừng bán. 400: id sai định dạng.
-      if (err instanceof ApiError && (err.status === 404 || err.status === 400)) return null;
-      throw err;
-    }
+  getBySlug: (slug: string) => fetchDetail(slug, REVALIDATE),
+
+  /**
+   * Giá/tồn kho hiện tại theo id — dùng khi tính lại đơn ở server (mục 5), nên KHÔNG cache.
+   * Id không tồn tại / ngừng bán bị bỏ qua.
+   */
+  async getManyByIds(ids: readonly string[]): Promise<Product[]> {
+    const found = await Promise.all([...new Set(ids)].map((id) => fetchDetail(id, 0)));
+    return found.filter((p): p is Product => p !== null);
   },
 };

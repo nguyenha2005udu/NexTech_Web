@@ -26,6 +26,8 @@ export interface Product {
   rating: number;
   reviewCount: number;
   inStock: boolean;
+  /** Số lượng tồn kho (backend: stock_quantity). Chưa biết → `undefined`, giỏ dùng giới hạn mặc định. */
+  stockQuantity?: number;
   /** Thuộc tính dùng cho bộ lọc (FDD 2.2) */
   ram?: string;
   cpu?: string;

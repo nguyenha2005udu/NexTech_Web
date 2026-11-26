@@ -83,6 +83,7 @@ type ProviderOptions = Omit<RenderOptions, "wrapper"> & { preloadedState?: Parti
 
 /**
  * Render component cần Redux. Mỗi lần gọi tạo store MỚI (test độc lập thứ tự).
+ * Bọc sẵn `<App>` của antd + `StyleProvider mock="server"` như renderWithAntd (nhanh, có message).
  * Kiểm tra kết quả qua UI; `store` trả về chỉ dùng để dispatch chuẩn bị dữ liệu khi cần.
  */
 export function renderWithProviders(
@@ -91,7 +92,13 @@ export function renderWithProviders(
 ): ReturnType<typeof render> & { store: AppStore } {
   const store = makeStore(preloadedState);
   function Wrapper({ children }: { children: ReactNode }) {
-    return <Provider store={store}>{children}</Provider>;
+    return (
+      <Provider store={store}>
+        <StyleProvider mock="server">
+          <App>{children}</App>
+        </StyleProvider>
+      </Provider>
+    );
   }
   return { store, ...render(ui, { wrapper: Wrapper, ...options }) };
 }

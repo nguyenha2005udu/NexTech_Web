@@ -1,11 +1,12 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { Logo } from "@/components/ui/Logo";
-import { BellIcon, GridIcon, ShoppingBagIcon, SparkleIcon } from "@/components/ui/icons";
+import { GridIcon, ShoppingBagIcon, SparkleIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import { categoryService } from "@/entities/category/service";
 import { CartBadge } from "@/features/cart";
 import { SearchBar, SearchBarView } from "@/features/catalog";
+import { NotificationBell } from "@/features/notifications";
 import styles from "./StorefrontHeader.module.css";
 import { UserMenu } from "./UserMenu";
 
@@ -22,9 +23,7 @@ export async function MainHeader() {
             <SearchBar />
           </Suspense>
           <nav className={styles.mainActions} aria-label="Tài khoản và giỏ hàng">
-            <Link href={routes.notifications} className={styles.navItem}>
-              <BellIcon /> Thông báo
-            </Link>
+            <NotificationBell className={styles.navItem} />
             <Link href={routes.cart} className={styles.navItem}>
               <ShoppingBagIcon /> Giỏ hàng <CartBadge />
             </Link>

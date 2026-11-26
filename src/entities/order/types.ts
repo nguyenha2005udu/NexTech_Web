@@ -61,3 +61,61 @@ export interface AdminOrderDetail {
   payment: AdminOrderPayment | null;
   created_at: string;
 }
+
+/** Một dòng đơn gửi backend khi đặt hàng (FDD 5.1.1). Giá do SERVER điền từ dữ liệu sản phẩm, không lấy từ client. */
+export interface CreateOrderLine {
+  product_id: string;
+  quantity: number;
+  unit_price: number;
+}
+
+/** Body tạo đơn của người mua. Tổng tiền đã được server web tính lại (mục 5) — backend vẫn kiểm lần nữa. */
+export interface CreateOrderInput {
+  items: CreateOrderLine[];
+  address_id: string;
+  discount_code: string | null;
+  payment_method: PaymentMethod;
+  subtotal: number;
+  shipping_fee: number;
+  discount_amount: number;
+  total: number;
+}
+
+/** Kết quả tạo đơn. `checkout_url` là trang thanh toán PayOS (COD: `null`). */
+export interface CreatedOrder {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  payment_method: PaymentMethod;
+  checkout_url: string | null;
+}
+
+/** Trạng thái đơn của chính người mua, dùng cho trang kết quả thanh toán (FDD 5.1.2). */
+export interface MyOrderSummary {
+  id: string;
+  status: OrderStatus;
+  total: number;
+  payment_method: PaymentMethod;
+  /** Trạng thái giao dịch thanh toán; `null` khi chưa có bản ghi thanh toán */
+  payment_status: PaymentStatus | null;
+}
+
+/** Một dòng sản phẩm trong đơn của người mua (snapshot lúc đặt). */
+export interface MyOrderItem {
+  product_id: string;
+  name: string;
+  quantity: number;
+  unit_price: number;
+}
+
+/** Chi tiết đơn của chính người mua (FDD 5.2.1–5.2.3). Cũng là dòng của danh sách đơn. */
+export interface MyOrderDetail extends MyOrderSummary {
+  created_at: string;
+  items: MyOrderItem[];
+  /** Snapshot địa chỉ giao lúc đặt */
+  shipping: { recipient_name: string; phone_number: string; full_address: string } | null;
+  subtotal: number;
+  shipping_fee: number;
+  discount_amount: number;
+  discount_code: string | null;
+}

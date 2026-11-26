@@ -97,4 +97,19 @@ describe("productService", () => {
     fetchMock.mockRejectedValue(new ApiError(400, "x"));
     expect(await productService.listByCategory("laptop")).toEqual([]);
   });
+
+  it("getManyByIds gọi không cache, bỏ id trùng và id không tồn tại", async () => {
+    fetchMock.mockImplementation(async (path: string) => {
+      if (path.endsWith("/p1")) return { id: "p1", name: "A", category_id: null, brand: null, price: "5", rating: null, description: null, stock_quantity: 1, is_active: true };
+      throw new ApiError(404, "x");
+    });
+    const result = await productService.getManyByIds(["p1", "p1", "zz"]);
+    expect(result.map((p) => p.id)).toEqual(["p1"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.every((c) => c[1] === 0)).toBe(true);
+  });
+
+  it("getManyByIds với danh sách rỗng trả mảng rỗng", async () => {
+    expect(await productService.getManyByIds([])).toEqual([]);
+  });
 });

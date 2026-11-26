@@ -6,8 +6,10 @@ import {
   clearCart,
   hydrateCart,
   initialCartState,
+  maxQuantityFor,
   removeItem,
   setAllSelected,
+  syncItems,
   toggleSelected,
   updateQuantity,
   type CartState,
@@ -105,5 +107,85 @@ describe("cartSlice — chọn sản phẩm, xoá giỏ, nạp giỏ", () => {
   it("hydrateCart thay giỏ và bật cờ hydrated", () => {
     const saved = [makeCartItem()];
     expect(cartReducer(initialCartState, hydrateCart(saved))).toEqual({ items: saved, hydrated: true });
+  });
+});
+
+describe("maxQuantityFor", () => {
+  it.each([
+    [undefined, MAX_QUANTITY_PER_ITEM],
+    [3, 3],
+    [50, MAX_QUANTITY_PER_ITEM],
+    [0, 1],
+    [2.9, 2],
+    [Number.NaN, MAX_QUANTITY_PER_ITEM],
+  ])("tồn kho %p → tối đa %p", (stock, expected) => {
+    expect(maxQuantityFor(stock)).toBe(expected);
+  });
+});
+
+describe("cartSlice — theo tồn kho", () => {
+  const limited = makeProduct({ id: "p-1", stockQuantity: 3 });
+
+  it("thêm vào giỏ bị kẹp theo tồn kho", () => {
+    const state = cartReducer(initialCartState, addItem({ product: limited, quantity: 8 }));
+    expect(state.items[0]).toMatchObject({ quantity: 3, maxQuantity: 3 });
+  });
+
+  it("thêm trùng không vượt tồn kho", () => {
+    let state = cartReducer(initialCartState, addItem({ product: limited, quantity: 2 }));
+    state = cartReducer(state, addItem({ product: limited, quantity: 2 }));
+    expect(state.items[0]?.quantity).toBe(3);
+  });
+
+  it("không tăng số lượng quá tồn kho", () => {
+    let state = cartReducer(initialCartState, addItem({ product: limited, quantity: 1 }));
+    state = cartReducer(state, updateQuantity({ productId: "p-1", quantity: 9 }));
+    expect(state.items[0]?.quantity).toBe(3);
+  });
+});
+
+describe("cartSlice — syncItems", () => {
+  const item = makeCartItem({ productId: "p-1", price: 100, quantity: 5, maxQuantity: 10 });
+
+  it("giá đổi thì lưu giá cũ và cập nhật giá mới", () => {
+    const state = cartReducer(withItems(item), syncItems([{ productId: "p-1", price: 90, available: true }]));
+    expect(state.items[0]).toMatchObject({ price: 90, previousPrice: 100 });
+  });
+
+  it("giá không đổi thì xoá cảnh báo cũ", () => {
+    const state = cartReducer(
+      withItems({ ...item, previousPrice: 120 }),
+      syncItems([{ productId: "p-1", price: 100, available: true }]),
+    );
+    expect(state.items[0]?.previousPrice).toBeUndefined();
+  });
+
+  it("tồn kho giảm thì kẹp lại số lượng và giới hạn", () => {
+    const state = cartReducer(withItems(item), syncItems([{ productId: "p-1", price: 100, stockQuantity: 2, available: true }]));
+    expect(state.items[0]).toMatchObject({ quantity: 2, maxQuantity: 2 });
+  });
+
+  it.each([
+    ["hết hàng", [{ productId: "p-1", price: 100, available: false }]],
+    ["không còn trong kết quả", []],
+  ])("sản phẩm %s thì đánh dấu và bỏ chọn", (_label, snapshots) => {
+    const state = cartReducer(withItems(item), syncItems(snapshots));
+    expect(state.items[0]).toMatchObject({ unavailable: true, selected: false });
+  });
+
+  it("sản phẩm có hàng lại thì gỡ đánh dấu", () => {
+    const state = cartReducer(
+      withItems({ ...item, unavailable: true, selected: false }),
+      syncItems([{ productId: "p-1", price: 100, available: true }]),
+    );
+    expect(state.items[0]?.unavailable).toBeUndefined();
+  });
+
+  it("không chọn được dòng hết hàng, kể cả khi bấm 'Chọn tất cả'", () => {
+    const gone = { ...item, unavailable: true, selected: false };
+    let state = cartReducer(withItems(gone), toggleSelected("p-1"));
+    expect(state.items[0]?.selected).toBe(false);
+    state = cartReducer(state, setAllSelected(true));
+    expect(state.items[0]?.selected).toBe(false);
   });
 });
