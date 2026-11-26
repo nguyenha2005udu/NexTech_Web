@@ -46,7 +46,8 @@ describe("ReviewLoadMore", () => {
     expect(screen.getByText("Giao nhanh.")).toBeInTheDocument();
     expect(urlOf(0)).toContain("/api/products/p-1/reviews");
     expect(urlOf(0)).toContain("page=2");
-    expect(screen.getByRole("button", { name: "Xem thêm đánh giá (3)" })).toBeInTheDocument();
+    // Nút còn ở trạng thái loading (có icon) ngay sau khi nối đánh giá → chờ tên nút ổn định.
+    expect(await screen.findByRole("button", { name: "Xem thêm đánh giá (3)" })).toBeInTheDocument();
   });
 
   it("tải hết thì ẩn nút; lần bấm tiếp theo gọi trang 3", async () => {
