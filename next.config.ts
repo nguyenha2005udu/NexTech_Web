@@ -4,6 +4,8 @@ const apiBaseUrl = process.env.API_BASE_URL;
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  // Ảnh sản phẩm do backend lưu trên Cloudinary (next/image cần khai báo host ngoài).
+  images: { remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }] },
   experimental: {
     serverActions: {
       // Upload ảnh sản phẩm qua Server Action (FDD 7.2): backend nhận tối đa 5MB, Next mặc định chỉ 1MB.

@@ -1,7 +1,7 @@
 /**
  * @jest-environment node
  */
-import { ApiError, apiFetch, apiFetchForm } from "./http";
+import { ApiError, apiFetch, apiFetchForm, apiFetchPublic } from "./http";
 
 const cookieStore = {
   get: jest.fn((name: string) => (name === "access_token" ? { value: "at-1" } : undefined)),
@@ -69,5 +69,35 @@ describe("apiFetchForm", () => {
     expect(init.method).toBe("POST");
     expect(init.body).toBe(form);
     expect(init.headers).not.toHaveProperty("Content-Type");
+  });
+});
+
+describe("apiFetchPublic", () => {
+  it("không gửi cookie, truyền revalidate cho fetch và trả dữ liệu", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { items: [] }));
+
+    const data = await apiFetchPublic<{ items: unknown[] }>("/api/products", 300);
+
+    expect(data).toEqual({ items: [] });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url.toString()).toBe("http://gateway.test/api/products");
+    expect(init.headers).not.toHaveProperty("Cookie");
+    expect(init).toMatchObject({ next: { revalidate: 300 } });
+    expect(cookieStore.get).not.toHaveBeenCalled();
+  });
+
+  it("đổi body lỗi backend thành ApiError", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(404, { statusCode: 404, code: "NT-CAT-0001", message: "Không tìm thấy" }));
+    await expect(apiFetchPublic("/api/products/x")).rejects.toEqual(new ApiError(404, "Không tìm thấy", "NT-CAT-0001"));
+  });
+
+  it("body lỗi không đúng chuẩn thì dùng câu chung", async () => {
+    fetchMock.mockResolvedValue(new Response("oops", { status: 500 }));
+    await expect(apiFetchPublic("/api/products")).rejects.toMatchObject({ status: 500 });
+  });
+
+  it("báo 503 khi không kết nối được gateway", async () => {
+    fetchMock.mockRejectedValue(new Error("ECONNREFUSED"));
+    await expect(apiFetchPublic("/api/products")).rejects.toMatchObject({ status: 503 });
   });
 });

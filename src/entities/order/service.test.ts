@@ -1,4 +1,7 @@
 /** @jest-environment node */
+jest.mock("@/entities/product/service", () => ({
+  productService: { getManyByIds: jest.fn().mockResolvedValue([]) },
+}));
 import { notificationService } from "@/entities/notification/service";
 import { orderService } from "./service";
 
