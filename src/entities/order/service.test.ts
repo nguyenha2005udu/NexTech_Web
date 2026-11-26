@@ -153,6 +153,13 @@ describe("orderService — đọc đơn", () => {
     });
   });
 
+  it("getDetailMine gộp giảm phí vận chuyển vào dòng giảm giá để tổng cộng đúng", async () => {
+    fetchMock.mockResolvedValue(rawDetail({ discount_amount: "12000", shipping_discount_amount: "30000", total: "108000" }));
+    const order = await orderService.getDetailMine("o-1");
+    expect(order).toMatchObject({ discount_amount: 42_000, total: 108_000 });
+    expect((order?.subtotal ?? 0) + (order?.shipping_fee ?? 0) - (order?.discount_amount ?? 0)).toBe(108_000);
+  });
+
   it.each([404, 400])("getDetailMine trả null khi backend báo %i", async (status) => {
     fetchMock.mockRejectedValue(new ApiError(status, "x"));
     expect(await orderService.getDetailMine("zz")).toBeNull();

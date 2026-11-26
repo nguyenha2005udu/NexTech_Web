@@ -40,7 +40,7 @@ const ORDER_ID = "aaaaaaaa-0000-4000-8000-000000000001";
 const validInput = {
   items: [{ productId: "p-asus", quantity: 1 }],
   addressId: "addr-home",
-  couponCode: null,
+  couponCodes: [],
   paymentMethod: "cod",
 };
 
@@ -120,7 +120,7 @@ describe("placeOrder — kiểm dữ liệu ở server", () => {
 
 describe("placeOrder — tạo đơn", () => {
   it("COD có mã: gửi mã (viết hoa) cho backend và chuyển tới trang kết quả kèm gợi ý phương thức", async () => {
-    const result = await placeOrder({ ...validInput, couponCode: "nex200" });
+    const result = await placeOrder({ ...validInput, couponCodes: ["nex200"] });
 
     expect(mockCreate).toHaveBeenCalledWith({
       items: [{ product_id: "p-asus", quantity: 1 }],
@@ -142,14 +142,38 @@ describe("placeOrder — tạo đơn", () => {
   });
 
   it("thử mã với tạm tính tính lại từ giá thật, bỏ qua giá client", async () => {
-    await placeOrder({ ...validInput, items: [{ productId: "p-asus", quantity: 2, price: 1 }], couponCode: "nex200" });
+    await placeOrder({ ...validInput, items: [{ productId: "p-asus", quantity: 2, price: 1 }], couponCodes: ["nex200"] });
     expect(mockValidate).toHaveBeenCalledWith("NEX200", 29_980_000, 30_000);
   });
 
   it("mã freeship được gửi vào ô freeship_code", async () => {
     mockValidate.mockResolvedValue({ valid: true, code: "SHIP30", category: "free_shipping", discountAmount: 30_000 });
-    await placeOrder({ ...validInput, couponCode: "ship30" });
+    await placeOrder({ ...validInput, couponCodes: ["ship30"] });
     expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ discount_code: null, freeship_code: "SHIP30" }));
+  });
+
+  it("2 loại mã: mã giảm đơn vào discount_code, mã freeship vào freeship_code", async () => {
+    mockValidate.mockImplementation(async (code) =>
+      code === "SHIP30"
+        ? { valid: true, code, category: "free_shipping", discountAmount: 30_000 }
+        : { valid: true, code, category: "order", discountAmount: 12_000 },
+    );
+    await placeOrder({ ...validInput, couponCodes: ["sale10", "ship30"] });
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ discount_code: "SALE10", freeship_code: "SHIP30" }));
+  });
+
+  it("2 mã cùng loại bị từ chối, không tạo đơn", async () => {
+    mockValidate.mockImplementation(async (code) => ({ valid: true, code, category: "order", discountAmount: 1 }));
+    expect(await placeOrder({ ...validInput, couponCodes: ["A", "B"] })).toMatchObject({
+      ok: false,
+      fieldErrors: { couponCodes: expect.stringContaining("1 mã giảm giá đơn hàng") },
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("nhiều hơn 2 mã bị từ chối", async () => {
+    expect(await placeOrder({ ...validInput, couponCodes: ["A", "B", "C"] })).toMatchObject({ ok: false });
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("PayOS chưa tạo được link: về trang kết quả để thử lại, không báo lỗi đặt hàng", async () => {
@@ -179,10 +203,10 @@ describe("placeOrder — tạo đơn", () => {
 describe("placeOrder — lỗi mã giảm giá từ backend", () => {
   it("mã lỗi NT-PRM-* gắn vào ô mã giảm giá", async () => {
     mockCreate.mockRejectedValue(new ApiError(400, "Mã giảm giá đã hết hạn", "NT-PRM-1011"));
-    expect(await placeOrder({ ...validInput, couponCode: "OLD" })).toEqual({
+    expect(await placeOrder({ ...validInput, couponCodes: ["OLD"] })).toEqual({
       ok: false,
       message: "Mã giảm giá đã hết hạn",
-      fieldErrors: { couponCode: "Mã giảm giá đã hết hạn" },
+      fieldErrors: { couponCodes: "Mã giảm giá đã hết hạn" },
     });
   });
 });
@@ -190,17 +214,17 @@ describe("placeOrder — lỗi mã giảm giá từ backend", () => {
 describe("placeOrder — thử mã giảm giá", () => {
   it("mã không hợp lệ: báo lý do của backend ở ô mã và không tạo đơn", async () => {
     mockValidate.mockResolvedValue({ valid: false, message: "Mã giảm giá không tồn tại" });
-    expect(await placeOrder({ ...validInput, couponCode: "KHONGCO" })).toEqual({
+    expect(await placeOrder({ ...validInput, couponCodes: ["KHONGCO"] })).toEqual({
       ok: false,
       message: "Mã giảm giá không tồn tại",
-      fieldErrors: { couponCode: "Mã giảm giá không tồn tại" },
+      fieldErrors: { couponCodes: "Mã giảm giá không tồn tại" },
     });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
   it("backend lỗi khi thử mã trả thông báo cho người dùng", async () => {
     mockValidate.mockRejectedValue(new ApiError(503, "Không kết nối được máy chủ"));
-    expect(await placeOrder({ ...validInput, couponCode: "X" })).toEqual({ ok: false, message: "Không kết nối được máy chủ" });
+    expect(await placeOrder({ ...validInput, couponCodes: ["X"] })).toEqual({ ok: false, message: "Không kết nối được máy chủ" });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 });

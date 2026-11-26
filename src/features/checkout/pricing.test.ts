@@ -33,7 +33,7 @@ describe("subtotalOf", () => {
 
 describe("priceOrder", () => {
   it("không có mã: tổng = tạm tính + phí vận chuyển (Figma 03.04 không mã)", () => {
-    expect(priceOrder([laptop], null, NOW)).toEqual({
+    expect(priceOrder([laptop], [], NOW)).toEqual({
       subtotal: 14_990_000,
       shippingFee: SHIPPING_FEE,
       discount: 0,
@@ -43,26 +43,26 @@ describe("priceOrder", () => {
   });
 
   it("đơn rỗng không tính phí vận chuyển", () => {
-    expect(priceOrder([], null, NOW)).toMatchObject({ shippingFee: 0, total: 0 });
+    expect(priceOrder([], [], NOW)).toMatchObject({ shippingFee: 0, total: 0 });
   });
 
   it("mã giảm cố định trừ vào tổng (NEX200 → 14.820.000 ₫ như Figma 03.04)", () => {
-    expect(priceOrder([laptop], makeCoupon(), NOW)).toMatchObject({ discount: 200_000, total: 14_820_000 });
+    expect(priceOrder([laptop], [makeCoupon()], NOW)).toMatchObject({ discount: 200_000, total: 14_820_000 });
   });
 
   it("mã giảm % tính trên tạm tính, làm tròn xuống", () => {
     const coupon = makeCoupon({ discount_type: "percent", discount_value: 5 });
-    expect(priceOrder([{ price: 999_999, quantity: 1 }], coupon, NOW).discount).toBe(49_999);
+    expect(priceOrder([{ price: 999_999, quantity: 1 }], [coupon], NOW).discount).toBe(49_999);
   });
 
   it("mã giảm % không vượt mức giảm tối đa", () => {
     const coupon = makeCoupon({ discount_type: "percent", discount_value: 10, max_discount: 500_000 });
-    expect(priceOrder([laptop], coupon, NOW).discount).toBe(500_000);
+    expect(priceOrder([laptop], [coupon], NOW).discount).toBe(500_000);
   });
 
   it("mã giảm cố định không làm tạm tính âm", () => {
     const coupon = makeCoupon({ discount_value: 5_000_000 });
-    expect(priceOrder([{ price: 1_000_000, quantity: 1 }], coupon, NOW)).toMatchObject({
+    expect(priceOrder([{ price: 1_000_000, quantity: 1 }], [coupon], NOW)).toMatchObject({
       discount: 1_000_000,
       total: SHIPPING_FEE,
     });
@@ -70,16 +70,32 @@ describe("priceOrder", () => {
 
   it("mã miễn phí vận chuyển chỉ giảm trên phí vận chuyển", () => {
     const coupon = makeCoupon({ code: "FREESHIP", category: "free_shipping", discount_type: "percent", discount_value: 100 });
-    expect(priceOrder([laptop], coupon, NOW)).toMatchObject({ discount: SHIPPING_FEE, total: 14_990_000 });
+    expect(priceOrder([laptop], [coupon], NOW)).toMatchObject({ discount: SHIPPING_FEE, total: 14_990_000 });
   });
 
   it("mã không đủ điều kiện thì không giảm và trả lý do", () => {
     const coupon = makeCoupon({ min_order_value: 20_000_000 });
-    expect(priceOrder([laptop], coupon, NOW)).toMatchObject({
+    expect(priceOrder([laptop], [coupon], NOW)).toMatchObject({
       discount: 0,
       total: 15_020_000,
       couponError: "Đơn tối thiểu 20.000.000 ₫ để dùng mã NEX200",
     });
+  });
+});
+
+describe("priceOrder — 2 loại mã", () => {
+  it("cộng giảm đơn và giảm phí vận chuyển", () => {
+    const freeship = makeCoupon({ code: "SHIP", category: "free_shipping", discount_type: "fixed_amount", discount_value: 30_000 });
+    expect(priceOrder([laptop], [makeCoupon(), freeship], NOW)).toMatchObject({
+      discount: 200_000 + SHIPPING_FEE,
+      total: 14_990_000 + SHIPPING_FEE - 200_000 - SHIPPING_FEE,
+      couponError: null,
+    });
+  });
+
+  it("một mã lỗi thì không giảm gì và báo lỗi của mã đó", () => {
+    const freeship = makeCoupon({ code: "SHIP", category: "free_shipping", min_order_value: 99_000_000 });
+    expect(priceOrder([laptop], [makeCoupon(), freeship], NOW)).toMatchObject({ discount: 0, couponError: expect.stringContaining("SHIP") });
   });
 });
 
