@@ -1,4 +1,16 @@
 /** @jest-environment node */
+jest.mock("@/entities/address/service", () => ({
+  addressService: {
+    getMine: jest.fn().mockResolvedValue({
+      id: "addr-home",
+      label: null,
+      recipient_name: "Người mua",
+      phone_number: "0900000002",
+      full_address: "1 Đại Cồ Việt, Hà Nội",
+      is_default: true,
+    }),
+  },
+}));
 jest.mock("@/entities/product/service", () => ({
   productService: { getManyByIds: jest.fn().mockResolvedValue([]) },
 }));
