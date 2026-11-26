@@ -41,15 +41,15 @@ export function CheckoutView({ addresses, coupons, buyNow }: Props) {
   const cartHydrated = useAppSelector(selectCartHydrated);
 
   const [addressId, setAddressId] = useState<string | null>(addresses[0]?.id ?? null);
-  const [couponCode, setCouponCode] = useState<string | null>(null);
+  const [couponCodes, setCouponCodes] = useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [picker, setPicker] = useState<"address" | "coupon" | null>(null);
   const [submitting, startSubmit] = useTransition();
 
   const lines: CheckoutLine[] = buyNow ? [buyNow] : cartLines;
   const address = addresses.find((a) => a.id === addressId) ?? null;
-  const coupon = coupons.find((c) => c.code === couponCode) ?? null;
-  const pricing = priceOrder(lines, coupon, new Date());
+  const appliedCoupons = couponCodes.flatMap((code) => coupons.find((c) => c.code === code) ?? []);
+  const pricing = priceOrder(lines, appliedCoupons, new Date());
 
   if (!buyNow && !cartHydrated) {
     return <div className={styles.empty} aria-busy="true" aria-label="Đang tải sản phẩm" />;
@@ -75,12 +75,12 @@ export function CheckoutView({ addresses, coupons, buyNow }: Props) {
       const result = await placeOrder({
         items: lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
         addressId: address.id,
-        couponCode,
+        couponCodes,
         paymentMethod,
       });
       if (!result.ok) {
         message.error(result.message);
-        if (result.fieldErrors?.couponCode) setCouponCode(null);
+        if (result.fieldErrors?.couponCodes) setCouponCodes([]);
         return;
       }
       // Backend vừa sinh thông báo đơn hàng → làm mới chuông ngay thay vì chờ chu kỳ polling.
@@ -153,14 +153,18 @@ export function CheckoutView({ addresses, coupons, buyNow }: Props) {
             <h2 id="coupon-title" className={styles.cardTitle}>
               <TagIcon /> Mã giảm giá
             </h2>
-            <Button onClick={() => setPicker("coupon")}>{coupon ? "Đổi mã" : "Chọn mã"}</Button>
+            <Button onClick={() => setPicker("coupon")}>{appliedCoupons.length ? "Đổi mã" : "Chọn mã"}</Button>
           </div>
-          {coupon && !pricing.couponError ? (
+          {appliedCoupons.length && !pricing.couponError ? (
             <p className={styles.couponRow}>
-              <span className={styles.couponTag}>{coupon.code}</span>
+              {appliedCoupons.map((c) => (
+                <span key={c.code} className={styles.couponTag}>
+                  {c.code}
+                </span>
+              ))}
               <span className={styles.muted}>Đã áp dụng giảm {formatVND(pricing.discount)}</span>
             </p>
-          ) : coupon ? (
+          ) : appliedCoupons.length ? (
             <p className={styles.error} role="alert">
               {pricing.couponError}
             </p>
@@ -189,8 +193,8 @@ export function CheckoutView({ addresses, coupons, buyNow }: Props) {
         open={picker === "coupon"}
         coupons={coupons}
         subtotal={pricing.subtotal}
-        selectedCode={couponCode}
-        onSelect={setCouponCode}
+        selectedCodes={couponCodes}
+        onSelect={setCouponCodes}
         onClose={() => setPicker(null)}
       />
     </div>

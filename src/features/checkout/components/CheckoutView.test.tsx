@@ -152,7 +152,7 @@ describe("CheckoutView — đặt hàng", () => {
     expect(mockPlaceOrder).toHaveBeenCalledWith({
       items: [{ productId: "p-asus", quantity: 1 }],
       addressId: "addr-home",
-      couponCode: null,
+      couponCodes: [],
       paymentMethod: "cod",
     });
     expect(store.getState().cart.items.map((i) => i.productId)).toEqual(["p-lenovo"]);
@@ -199,7 +199,7 @@ describe("CheckoutView — đặt hàng", () => {
     mockPlaceOrder.mockResolvedValue({
       ok: false,
       message: "Mã giảm giá đã hết hạn",
-      fieldErrors: { couponCode: "Mã giảm giá đã hết hạn" },
+      fieldErrors: { couponCodes: "Mã giảm giá đã hết hạn" },
     });
     const { user } = renderCheckout();
     await user.click(screen.getByRole("button", { name: "Chọn mã" }));

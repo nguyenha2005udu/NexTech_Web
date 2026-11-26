@@ -29,7 +29,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
   await requirePermission("order:create");
   const parsed = placeOrderSchema.safeParse(input);
   if (!parsed.success) return invalid(parsed.error);
-  const { items, addressId, couponCode, paymentMethod } = parsed.data;
+  const { items, addressId, couponCodes, paymentMethod } = parsed.data;
 
   const products = await productService.getManyByIds(items.map((i) => i.productId));
   const lines = [];
@@ -48,19 +48,25 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
     return { ok: false, message: "Địa chỉ giao hàng không hợp lệ", fieldErrors: { addressId: "Chọn lại địa chỉ" } };
   }
 
-  // Backend tách mã giảm đơn và mã freeship thành 2 ô; thử mã trước để biết gửi vào ô nào và báo lỗi sớm ở ô mã.
+  // Backend tách mã giảm đơn và mã freeship thành 2 ô (dùng đồng thời được); thử từng mã để biết gửi vào ô nào
+  // và báo lỗi sớm ở ô mã. Mỗi loại tối đa 1 mã.
   let discountCode: string | null = null;
   let freeshipCode: string | null = null;
-  if (couponCode) {
-    const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
-    try {
-      const check = await couponService.validate(couponCode, subtotal, SHIPPING_FEE);
-      if (!check.valid) return { ok: false, message: check.message, fieldErrors: { couponCode: check.message } };
-      if (check.category === "free_shipping") freeshipCode = check.code;
+  const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+  try {
+    for (const code of couponCodes) {
+      const check = await couponService.validate(code, subtotal, SHIPPING_FEE);
+      if (!check.valid) return { ok: false, message: check.message, fieldErrors: { couponCodes: check.message } };
+      const isFreeship = check.category === "free_shipping";
+      if (isFreeship ? freeshipCode : discountCode) {
+        const message = "Mỗi đơn chỉ dùng 1 mã giảm giá đơn hàng và 1 mã miễn phí vận chuyển";
+        return { ok: false, message, fieldErrors: { couponCodes: message } };
+      }
+      if (isFreeship) freeshipCode = check.code;
       else discountCode = check.code;
-    } catch (err) {
-      return failed(err);
     }
+  } catch (err) {
+    return failed(err);
   }
 
   try {
@@ -81,7 +87,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
     };
   } catch (err) {
     // NT-PRM-*: lỗi mã giảm giá → gắn vào ô mã. Mã khác hiện thông báo chung.
-    return failed(err, err instanceof ApiError && err.code?.startsWith("NT-PRM") ? { [err.code]: "couponCode" } : {});
+    return failed(err, err instanceof ApiError && err.code?.startsWith("NT-PRM") ? { [err.code]: "couponCodes" } : {});
   }
 }
 

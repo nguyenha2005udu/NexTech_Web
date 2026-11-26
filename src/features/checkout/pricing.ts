@@ -47,15 +47,19 @@ function discountOn(coupon: Coupon, base: number): number {
   return Math.max(0, Math.min(capped, base));
 }
 
-export function priceOrder(lines: readonly PricingLine[], coupon: Coupon | null, now: Date): OrderPricing {
+/** `coupons`: tối đa 1 mã giảm đơn + 1 mã freeship (backend cho dùng đồng thời); mã lỗi đầu tiên được báo. */
+export function priceOrder(lines: readonly PricingLine[], coupons: readonly Coupon[], now: Date): OrderPricing {
   const subtotal = subtotalOf(lines);
   const shippingFee = lines.length ? SHIPPING_FEE : 0;
-  const couponError = coupon ? couponProblem(coupon, subtotal, now) : null;
+  const couponError = coupons.map((c) => couponProblem(c, subtotal, now)).find((p) => p !== null) ?? null;
 
   let discount = 0;
-  if (coupon && !couponError) {
+  if (!couponError) {
     // Mã "free_shipping" giảm trên phí vận chuyển, mã "order" giảm trên tạm tính.
-    discount = discountOn(coupon, coupon.category === "free_shipping" ? shippingFee : subtotal);
+    discount = coupons.reduce(
+      (sum, c) => sum + discountOn(c, c.category === "free_shipping" ? shippingFee : subtotal),
+      0,
+    );
   }
 
   return { subtotal, shippingFee, discount, total: subtotal + shippingFee - discount, couponError };

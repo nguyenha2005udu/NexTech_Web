@@ -40,6 +40,7 @@ interface RawOrderDetail {
   subtotal: string | number;
   shipping_fee: string | number;
   discount_amount: string | number;
+  shipping_discount_amount?: string | number;
   total: string | number;
   items: Array<{ product: { id: string; name: string | null; price: string | number }; quantity: number }>;
   shipping_address: RawShipping | null;
@@ -90,7 +91,8 @@ function toDetail(raw: RawOrderDetail): MyOrderDetail {
     },
     subtotal: Number(raw.subtotal),
     shipping_fee: Number(raw.shipping_fee),
-    discount_amount: Number(raw.discount_amount),
+    // Một dòng "Giảm giá" cho cả giảm đơn lẫn giảm phí vận chuyển (mã freeship) để tổng hiển thị cộng đúng.
+    discount_amount: Number(raw.discount_amount) + Number(raw.shipping_discount_amount ?? 0),
     // Backend không trả mã đã dùng ở API đơn.
     discount_code: null,
   };
