@@ -47,6 +47,31 @@ export async function apiFetch<T>(path: string, init: { method?: Method; body?: 
 }
 
 /**
+ * GET dữ liệu công khai (catalog) cho trang SSG/ISR: KHÔNG đọc cookie nên không làm trang thành dynamic,
+ * và cho phép cache theo `revalidate` (giây).
+ */
+export async function apiFetchPublic<T>(path: string, revalidate = 60): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(new URL(path, apiBaseUrl()), {
+      headers: { Accept: "application/json" },
+      next: { revalidate },
+    });
+  } catch {
+    throw new ApiError(503, "Không kết nối được máy chủ, vui lòng thử lại sau");
+  }
+  const body: unknown = await res.json().catch(() => undefined);
+  if (!res.ok) {
+    if (isErrorBody(body)) {
+      const message = Array.isArray(body.message) ? (body.message[0] ?? "Dữ liệu không hợp lệ") : body.message;
+      throw new ApiError(res.status, message, body.code);
+    }
+    throw new ApiError(res.status, "Máy chủ gặp lỗi, vui lòng thử lại sau");
+  }
+  return body as T;
+}
+
+/**
  * Gọi backend với body multipart (upload file). Không đặt Content-Type để fetch tự ghi boundary.
  * Ví dụ: `POST /api/admin/products/:id/images` với field `file` (design/admin 03 §2.3).
  */
