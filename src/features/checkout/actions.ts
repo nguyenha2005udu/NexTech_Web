@@ -1,10 +1,12 @@
 "use server";
 
 // FDD 5.1.1 — Đặt hàng (COD | PayOS/VietQR). Server Action là endpoint công khai nên đủ lớp bảo vệ (mục 10.3):
-// requirePermission("order:create") → zod → kiểm giá/tồn kho THẬT ở server → kiểm địa chỉ của chính người dùng → đặt đơn.
+// requirePermission("order:create") → zod → kiểm giá/tồn kho THẬT ở server → kiểm địa chỉ của chính người dùng → thử mã
+// giảm giá → đặt đơn.
 // Giá, phí ship, mã giảm giá do BACKEND (order-service) tính và kiểm; web không gửi số tiền nào lên.
 import { routes } from "@/config/routes";
 import { addressService } from "@/entities/address/service";
+import { couponService } from "@/entities/coupon/service";
 import { orderService } from "@/entities/order/service";
 import { productService } from "@/entities/product/service";
 import { failed, invalid } from "@/lib/action-result";
@@ -12,6 +14,7 @@ import { ApiError } from "@/lib/api/http";
 import { requirePermission } from "@/lib/auth/guards";
 import type { ActionResult } from "@/types/action";
 import { paymentResultOf } from "./payment-result";
+import { SHIPPING_FEE } from "./pricing";
 import { placeOrderSchema, retryPaymentSchema } from "./schemas";
 
 export type PlaceOrderResult = {
@@ -37,7 +40,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
     if (product.stockQuantity !== undefined && item.quantity > product.stockQuantity) {
       return { ok: false, message: `${product.name} chỉ còn ${product.stockQuantity} sản phẩm.` };
     }
-    lines.push({ productId: product.id, quantity: item.quantity });
+    lines.push({ productId: product.id, quantity: item.quantity, price: product.price });
   }
 
   const address = await addressService.getMine(addressId);
@@ -45,11 +48,27 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
     return { ok: false, message: "Địa chỉ giao hàng không hợp lệ", fieldErrors: { addressId: "Chọn lại địa chỉ" } };
   }
 
+  // Backend tách mã giảm đơn và mã freeship thành 2 ô; thử mã trước để biết gửi vào ô nào và báo lỗi sớm ở ô mã.
+  let discountCode: string | null = null;
+  let freeshipCode: string | null = null;
+  if (couponCode) {
+    const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
+    try {
+      const check = await couponService.validate(couponCode, subtotal, SHIPPING_FEE);
+      if (!check.valid) return { ok: false, message: check.message, fieldErrors: { couponCode: check.message } };
+      if (check.category === "free_shipping") freeshipCode = check.code;
+      else discountCode = check.code;
+    } catch (err) {
+      return failed(err);
+    }
+  }
+
   try {
     const order = await orderService.create({
       items: lines.map((l) => ({ product_id: l.productId, quantity: l.quantity })),
       address_id: address.id,
-      discount_code: couponCode,
+      discount_code: discountCode,
+      freeship_code: freeshipCode,
       payment_method: paymentMethod,
     });
     return {

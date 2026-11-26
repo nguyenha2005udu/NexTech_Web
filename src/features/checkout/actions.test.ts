@@ -1,5 +1,6 @@
 /** @jest-environment node */
 import { addressService } from "@/entities/address/service";
+import { couponService } from "@/entities/coupon/service";
 import { orderService } from "@/entities/order/service";
 import { productService } from "@/entities/product/service";
 import { ApiError } from "@/lib/api/http";
@@ -15,12 +16,14 @@ jest.mock("next/navigation", () => ({
 jest.mock("@/lib/auth/session", () => ({ getSessionUser: jest.fn() }));
 jest.mock("@/entities/product/service", () => ({ productService: { getManyByIds: jest.fn() } }));
 jest.mock("@/entities/address/service", () => ({ addressService: { getMine: jest.fn() } }));
+jest.mock("@/entities/coupon/service", () => ({ couponService: { validate: jest.fn() } }));
 jest.mock("@/entities/order/service", () => ({ orderService: { create: jest.fn() } }));
 
 const mockSession = jest.mocked(getSessionUser);
 const mockProducts = jest.mocked(productService.getManyByIds);
 const mockAddress = jest.mocked(addressService.getMine);
 const mockCreate = jest.mocked(orderService.create);
+const mockValidate = jest.mocked(couponService.validate);
 
 const user: SessionUser = { id: "u-1", email: "minh.anh@example.com", full_name: "Minh Anh", role: "user", avatar_url: null };
 const asus = makeProduct({ id: "p-asus", name: "ASUS Vivobook 15", price: 14_990_000, inStock: true });
@@ -45,6 +48,7 @@ beforeEach(() => {
   mockSession.mockResolvedValue(user);
   mockProducts.mockResolvedValue([asus]);
   mockAddress.mockResolvedValue(home);
+  mockValidate.mockResolvedValue({ valid: true, code: "NEX200", category: "order", discountAmount: 200_000 });
   mockCreate.mockImplementation(async (input) => ({
     id: ORDER_ID,
     status: "pending",
@@ -122,6 +126,7 @@ describe("placeOrder — tạo đơn", () => {
       items: [{ product_id: "p-asus", quantity: 1 }],
       address_id: "addr-home",
       discount_code: "NEX200",
+      freeship_code: null,
       payment_method: "cod",
     });
     expect(result).toEqual({
@@ -130,9 +135,21 @@ describe("placeOrder — tạo đơn", () => {
     });
   });
 
-  it("không nhập mã thì discount_code là null", async () => {
+  it("không nhập mã thì không gọi backend kiểm mã và cả hai ô mã là null", async () => {
     await placeOrder(validInput);
-    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ discount_code: null }));
+    expect(mockValidate).not.toHaveBeenCalled();
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ discount_code: null, freeship_code: null }));
+  });
+
+  it("thử mã với tạm tính tính lại từ giá thật, bỏ qua giá client", async () => {
+    await placeOrder({ ...validInput, items: [{ productId: "p-asus", quantity: 2, price: 1 }], couponCode: "nex200" });
+    expect(mockValidate).toHaveBeenCalledWith("NEX200", 29_980_000, 30_000);
+  });
+
+  it("mã freeship được gửi vào ô freeship_code", async () => {
+    mockValidate.mockResolvedValue({ valid: true, code: "SHIP30", category: "free_shipping", discountAmount: 30_000 });
+    await placeOrder({ ...validInput, couponCode: "ship30" });
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ discount_code: null, freeship_code: "SHIP30" }));
   });
 
   it("PayOS chưa tạo được link: về trang kết quả để thử lại, không báo lỗi đặt hàng", async () => {
@@ -167,5 +184,23 @@ describe("placeOrder — lỗi mã giảm giá từ backend", () => {
       message: "Mã giảm giá đã hết hạn",
       fieldErrors: { couponCode: "Mã giảm giá đã hết hạn" },
     });
+  });
+});
+
+describe("placeOrder — thử mã giảm giá", () => {
+  it("mã không hợp lệ: báo lý do của backend ở ô mã và không tạo đơn", async () => {
+    mockValidate.mockResolvedValue({ valid: false, message: "Mã giảm giá không tồn tại" });
+    expect(await placeOrder({ ...validInput, couponCode: "KHONGCO" })).toEqual({
+      ok: false,
+      message: "Mã giảm giá không tồn tại",
+      fieldErrors: { couponCode: "Mã giảm giá không tồn tại" },
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("backend lỗi khi thử mã trả thông báo cho người dùng", async () => {
+    mockValidate.mockRejectedValue(new ApiError(503, "Không kết nối được máy chủ"));
+    expect(await placeOrder({ ...validInput, couponCode: "X" })).toEqual({ ok: false, message: "Không kết nối được máy chủ" });
+    expect(mockCreate).not.toHaveBeenCalled();
   });
 });

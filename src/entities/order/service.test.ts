@@ -22,7 +22,7 @@ const calls = (): Call[] => fetchMock.mock.calls as Call[];
 const pathsOf = (method: string) => calls().filter(([, i]) => (i?.method ?? "GET") === method).map(([p]) => p);
 
 const P1 = "p-1";
-const input = { items: [{ product_id: P1, quantity: 2 }], address_id: "addr-1", discount_code: null, payment_method: "cod" as const };
+const input = { items: [{ product_id: P1, quantity: 2 }], address_id: "addr-1", discount_code: null, freeship_code: null, payment_method: "cod" as const };
 
 /** Dựng phản hồi theo đường dẫn; mặc định giỏ backend rỗng. */
 function backend(over: Partial<Record<string, unknown>> = {}) {
@@ -93,6 +93,14 @@ describe("orderService.create", () => {
     backend();
     await orderService.create({ ...input, discount_code: "NEX200" });
     expect(calls().find(([p]) => p === "/api/orders")?.[1]?.body).toMatchObject({ discount_code: "NEX200" });
+  });
+
+  it("mã freeship gửi vào ô freeship_code riêng, không lẫn với discount_code", async () => {
+    backend();
+    await orderService.create({ ...input, freeship_code: "SHIP30" });
+    const body = calls().find(([p]) => p === "/api/orders")?.[1]?.body as Record<string, unknown>;
+    expect(body).toMatchObject({ freeship_code: "SHIP30" });
+    expect(body).not.toHaveProperty("discount_code");
   });
 
   it("tạo giao dịch thanh toán theo phương thức đã chọn", async () => {
