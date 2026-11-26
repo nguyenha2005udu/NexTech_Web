@@ -3,6 +3,7 @@ import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
 import { categoryService } from "@/entities/category/service";
 import { productService } from "@/entities/product/service";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 import { OG_SIZE, OgCard } from "@/lib/og";
 
 export const alt = `Danh mục sản phẩm tại ${siteConfig.name}`;
@@ -12,7 +13,7 @@ export const revalidate = 300;
 
 // Prerender ảnh cùng danh sách slug với page (SSG + ISR như trang danh mục).
 export async function generateStaticParams() {
-  const categories = await categoryService.list();
+  const categories = await orFallbackAtBuild(() => categoryService.list(), []);
   return categories.map((c) => ({ slug: c.slug }));
 }
 

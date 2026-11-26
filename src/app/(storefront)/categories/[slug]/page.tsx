@@ -8,6 +8,7 @@ import { routes } from "@/config/routes";
 import { categoryService } from "@/entities/category/service";
 import { getFilterFacets } from "@/entities/product";
 import { productService } from "@/entities/product/service";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 import { CategoryProductBrowser, ListingView, ProductGrid } from "@/features/catalog";
 import { breadcrumbJsonLd } from "@/lib/seo";
 
@@ -16,7 +17,7 @@ type Props = { params: Promise<{ slug: string }> };
 export const revalidate = 300;
 
 export async function generateStaticParams() {
-  const categories = await categoryService.list();
+  const categories = await orFallbackAtBuild(() => categoryService.list(), []);
   return categories.map((c) => ({ slug: c.slug }));
 }
 

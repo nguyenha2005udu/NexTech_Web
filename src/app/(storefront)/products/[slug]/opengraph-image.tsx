@@ -3,6 +3,7 @@
 import { ImageResponse } from "next/og";
 import { siteConfig } from "@/config/site";
 import { productService } from "@/entities/product/service";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 import { formatNumber } from "@/lib/format";
 import { OG_SIZE, OgCard, publicImageDataUri } from "@/lib/og";
 
@@ -13,7 +14,7 @@ export const revalidate = 60;
 
 // Prerender ảnh cùng danh sách slug với page (SSG + ISR như trang chi tiết).
 export async function generateStaticParams() {
-  const products = await productService.listPopular();
+  const products = await orFallbackAtBuild(() => productService.listPopular(), []);
   return products.map((p) => ({ slug: p.slug }));
 }
 

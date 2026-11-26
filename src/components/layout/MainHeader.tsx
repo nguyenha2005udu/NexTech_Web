@@ -7,12 +7,13 @@ import { categoryService } from "@/entities/category/service";
 import { CartBadge } from "@/features/cart";
 import { SearchBar, SearchBarView } from "@/features/catalog";
 import { NotificationBell } from "@/features/notifications";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 import styles from "./StorefrontHeader.module.css";
 import { UserMenu } from "./UserMenu";
 
 // Header các trang trong — Figma 01.02–01.05 (thanh chính + điều hướng danh mục).
 export async function MainHeader() {
-  const navCategories = await categoryService.listNav();
+  const navCategories = await orFallbackAtBuild(() => categoryService.listNav(), []);
 
   return (
     <header className={styles.mainHeader}>

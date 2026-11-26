@@ -4,6 +4,7 @@ import { routes } from "@/config/routes";
 import { laptopItMessages } from "@/entities/conversation";
 import { productService } from "@/entities/product/service";
 import { AssistantShell, AssistantSidebar, ChatPanel } from "@/features/assistant";
+import { orFallbackAtBuild } from "@/lib/build-safe";
 
 export const metadata: Metadata = {
   title: "Trợ lý mua sắm AI",
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 export default async function Page({ searchParams }: Props) {
-  const products = await productService.listPopular();
+  const products = await orFallbackAtBuild(() => productService.listPopular(), []);
   // TODO(auth): bỏ `?demo=` khi có phiên thật. reply = Figma 02.02, save = Figma 02.03 (khách vừa đăng nhập).
   const { demo } = await searchParams;
   const showReply = demo === "reply" || demo === "save";
