@@ -115,6 +115,12 @@ export const ArrowRightIcon = createIcon("ArrowRightIcon", {
   paths: ["M3.33331 10H15.8333M10.8333 15L15.8333 10L10.8333 5"],
 });
 
+export const ChevronDownIcon = createIcon("ChevronDownIcon", {
+  box: 16,
+  stroke: 1.5,
+  paths: ["M4 6L8 10L12 6"],
+});
+
 export const ArrowLeftIcon = createIcon("ArrowLeftIcon", {
   box: 16,
   stroke: 1.13333,
