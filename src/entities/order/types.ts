@@ -72,7 +72,10 @@ export interface CreateOrderLine {
 export interface CreateOrderInput {
   items: CreateOrderLine[];
   address_id: string;
+  /** Mã giảm đơn (category `order`) */
   discount_code: string | null;
+  /** Mã miễn phí vận chuyển (category `free_shipping`) — backend nhận ở ô riêng */
+  freeship_code: string | null;
   payment_method: PaymentMethod;
 }
 

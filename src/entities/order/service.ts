@@ -133,6 +133,7 @@ export const orderService = {
         address_id: input.address_id,
         cart_item_ids: cartItemIds,
         ...(input.discount_code && { discount_code: input.discount_code }),
+        ...(input.freeship_code && { freeship_code: input.freeship_code }),
       },
     });
 
