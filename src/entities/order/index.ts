@@ -11,6 +11,7 @@ export type {
   CreatedOrder,
   MyOrderDetail,
   MyOrderItem,
+  MyOrderListItem,
   MyOrderSummary,
   OrderStatus,
 } from "./types";

@@ -60,7 +60,7 @@ export function PaymentResult({ order }: { order: MyOrderSummary }) {
           </div>
           <div className={styles.row}>
             <dt>Phương thức</dt>
-            <dd>{METHOD_LABEL[order.payment_method]}</dd>
+            <dd>{order.payment_method ? METHOD_LABEL[order.payment_method] : "—"}</dd>
           </div>
         </dl>
         <div className={styles.actions}>

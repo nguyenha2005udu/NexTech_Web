@@ -1,5 +1,5 @@
 import { screen, waitFor } from "@testing-library/react";
-import type { MyOrderDetail } from "@/entities/order";
+import type { MyOrderDetail, MyOrderListItem } from "@/entities/order";
 import { renderWithProviders, setupUser } from "@/lib/test-utils";
 import { cancelOrder } from "../actions";
 import { CancelOrderButton } from "./CancelOrderButton";
@@ -48,9 +48,20 @@ describe("OrderStatusFilter", () => {
   });
 });
 
+const makeListItem = (override: Partial<MyOrderListItem> = {}): MyOrderListItem => ({
+  id: ID,
+  status: "pending",
+  total: 14_820_000,
+  created_at: "2026-11-24T03:00:00.000Z",
+  item_count: 2,
+  product_name: "ASUS Vivobook 15",
+  product_image: null,
+  ...override,
+});
+
 describe("OrderList", () => {
   it("hiện mã đơn, tên sản phẩm đầu, số sản phẩm còn lại, tổng tiền và trạng thái", () => {
-    renderWithProviders(<OrderList orders={[makeOrder()]} filtered={false} />);
+    renderWithProviders(<OrderList orders={[makeListItem()]} filtered={false} />);
     expect(screen.getByText("#A1B2C3D4")).toBeInTheDocument();
     expect(screen.getByText(/ASUS Vivobook 15 và 1 sản phẩm khác/)).toBeInTheDocument();
     expect(screen.getByText("14.820.000 ₫")).toBeInTheDocument();
