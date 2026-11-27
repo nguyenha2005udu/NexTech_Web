@@ -1,5 +1,5 @@
 // Public API của feature checkout (FDD 4.2 + 5.1).
-export { placeOrder, retryPayment, type PlaceOrderResult } from "./actions";
+export { placeOrder, retryPayment, startPayment, type PlaceOrderResult } from "./actions";
 export { SHIPPING_FEE, couponProblem, priceOrder, subtotalOf, type OrderPricing, type PricingLine } from "./pricing";
 export { MAX_LINES_PER_ORDER, MAX_QUANTITY_PER_LINE, placeOrderSchema, type PlaceOrderInput } from "./schemas";
 export { CheckoutView } from "./components/CheckoutView";
@@ -8,4 +8,4 @@ export { CheckoutPage } from "./components/CheckoutPage";
 export { parseBuyNowParams, toBuyNowLine } from "./buy-now";
 export { paymentResultOf, type PaymentResultKind } from "./payment-result";
 export { PaymentResult } from "./components/PaymentResult";
-export { loadPaymentResult, type PaymentResultParams } from "./load-payment-result";
+export { loadPaymentResult, type PaymentResultData, type PaymentResultParams } from "./load-payment-result";

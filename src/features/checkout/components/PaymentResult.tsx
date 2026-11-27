@@ -9,6 +9,8 @@ import type { MyOrderSummary } from "@/entities/order";
 import type { PaymentMethod } from "@/entities/transaction";
 import { formatOrderCode, formatVND } from "@/lib/format";
 import { paymentResultOf, type PaymentResultKind } from "../payment-result";
+import { PaymentStarter } from "./PaymentStarter";
+import { ProcessingRefresh } from "./ProcessingRefresh";
 import { RetryPaymentButton } from "./RetryPaymentButton";
 import styles from "./PaymentResult.module.css";
 
@@ -19,6 +21,7 @@ const VIEW: Record<PaymentResultKind, { title: string; tone: "success" | "pendin
   paid: { title: "Thanh toán thành công", tone: "success", icon: <CheckIcon size={20} /> },
   pending: { title: "Đang xác nhận thanh toán", tone: "pending", icon: <ClockIcon size={20} /> },
   failed: { title: "Thanh toán chưa hoàn tất", tone: "failed", icon: <CloseIcon size={20} /> },
+  processing: { title: "Đơn hàng đang được xử lý", tone: "pending", icon: <ClockIcon size={20} /> },
 };
 
 function leadOf(kind: PaymentResultKind, total: string, code: string): string {
@@ -31,10 +34,18 @@ function leadOf(kind: PaymentResultKind, total: string, code: string): string {
       return "NexTech đang kiểm tra giao dịch. Bạn có thể xem trạng thái mới nhất trong Chi tiết đơn hàng.";
     case "failed":
       return "Giao dịch chưa được xác nhận. Bạn có thể kiểm tra đơn hoặc thử thanh toán lại.";
+    case "processing":
+      return `NexTech đang giữ hàng và xác nhận đơn ${code}. Trang sẽ tự cập nhật khi xong.`;
   }
 }
 
-export function PaymentResult({ order }: { order: MyOrderSummary }) {
+type Props = {
+  order: MyOrderSummary;
+  /** Đơn đã `pending` nhưng chưa có giao dịch: trang tự tạo theo phương thức này (xem PaymentStarter) */
+  needsPayment?: PaymentMethod | null;
+};
+
+export function PaymentResult({ order, needsPayment = null }: Props) {
   const kind = paymentResultOf(order);
   const view = VIEW[kind];
   const code = formatOrderCode(order.id);
@@ -63,6 +74,8 @@ export function PaymentResult({ order }: { order: MyOrderSummary }) {
             <dd>{order.payment_method ? METHOD_LABEL[order.payment_method] : "—"}</dd>
           </div>
         </dl>
+        {kind === "processing" ? <ProcessingRefresh /> : null}
+        {needsPayment ? <PaymentStarter orderId={order.id} /> : null}
         <div className={styles.actions}>
           <Link href={routes.orderDetail(order.id)} className={styles.primary}>
             <ArrowRightIcon /> Xem đơn hàng

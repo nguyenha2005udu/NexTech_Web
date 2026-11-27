@@ -22,8 +22,17 @@ export interface PaymentResultParams {
 
 const asMethod = (value: string | undefined): PaymentMethod | null => (value === "cod" || value === "payos" ? value : null);
 
+export interface PaymentResultData {
+  order: MyOrderSummary;
+  /**
+   * Phương thức cần tạo giao dịch ngay: đơn đã `pending` nhưng lúc đặt (backend trả 202 `processing`) chưa có giao dịch.
+   * `null` khi không cần.
+   */
+  needsPayment: PaymentMethod | null;
+}
+
 /** `null` khi không xác định được đơn, hoặc đơn không thuộc người đang đăng nhập. */
-export async function loadPaymentResult(params: PaymentResultParams): Promise<MyOrderSummary | null> {
+export async function loadPaymentResult(params: PaymentResultParams): Promise<PaymentResultData | null> {
   const stored = await readPaymentContext();
   const orderCode = params.orderCode?.trim();
   const orderId = orderCode && UUID.test(orderCode) ? orderCode : stored?.orderId;
@@ -40,9 +49,12 @@ export async function loadPaymentResult(params: PaymentResultParams): Promise<My
   if (!order) return null;
 
   return {
-    ...order,
-    payment_method: method ?? order.payment_method,
-    // `pending` không nói thêm gì so với trạng thái suy ra từ đơn
-    payment_status: paymentStatus && paymentStatus !== "pending" ? paymentStatus : order.payment_status,
+    order: {
+      ...order,
+      payment_method: method ?? order.payment_method,
+      // `pending` không nói thêm gì so với trạng thái suy ra từ đơn
+      payment_status: paymentStatus && paymentStatus !== "pending" ? paymentStatus : order.payment_status,
+    },
+    needsPayment: context && context.paymentId === null && order.status === "pending" ? context.method : null,
   };
 }

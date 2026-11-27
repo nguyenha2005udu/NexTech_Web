@@ -169,6 +169,15 @@ export const orderService = {
     };
   },
 
+  /**
+   * Tạo giao dịch cho đơn đã `pending` (FDD 5.1.2): dùng khi đơn đặt lúc backend trả 202 `processing` nên lúc đó chưa
+   * tạo được giao dịch. Backend: 400 nếu đơn không còn `pending`, 409 `NT-PAY-1003` nếu đã có giao dịch.
+   */
+  async createPayment(id: string, method: CreateOrderInput["payment_method"]): Promise<{ id: string; checkout_url: string | null }> {
+    const payment = await requestPayment(id, method);
+    return { id: payment.id, checkout_url: method === "payos" ? payment.payment_url : null };
+  },
+
   /** Tạo link thanh toán PayOS mới cho đơn chưa trả tiền (FDD 5.1.2 "Thử lại"). Backend chỉ cho khi đơn còn `pending`. */
   async retryPayment(id: string): Promise<{ checkout_url: string | null }> {
     const payment = await requestPayment(id, "payos");

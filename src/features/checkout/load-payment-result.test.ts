@@ -58,19 +58,51 @@ describe("loadPaymentResult — xác định đơn", () => {
     mockContext.mockResolvedValue({ ...payosContext, orderId: OTHER_ID });
     const result = await loadPaymentResult({ orderCode: ORDER_ID });
     expect(mockStatus).not.toHaveBeenCalled();
-    expect(result?.payment_method).toBeNull();
+    expect(result?.order.payment_method).toBeNull();
   });
 });
 
 describe("loadPaymentResult — phương thức thanh toán", () => {
   it("lấy từ cookie, ưu tiên hơn ?method= trên URL", async () => {
     mockContext.mockResolvedValue({ ...payosContext, method: "cod", paymentId: null });
-    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "payos" }))?.payment_method).toBe("cod");
+    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "payos" }))?.order.payment_method).toBe("cod");
   });
 
   it("hết cookie thì dùng gợi ý ?method= hợp lệ, bỏ qua giá trị lạ", async () => {
-    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "cod" }))?.payment_method).toBe("cod");
-    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "momo" }))?.payment_method).toBeNull();
+    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "cod" }))?.order.payment_method).toBe("cod");
+    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "momo" }))?.order.payment_method).toBeNull();
+  });
+});
+
+describe("loadPaymentResult — đơn đặt lúc backend còn processing (202)", () => {
+  const noPayment = { ...payosContext, paymentId: null };
+
+  it("đơn đã pending mà cookie chưa có giao dịch: cần tạo giao dịch theo phương thức đã chọn", async () => {
+    mockContext.mockResolvedValue(noPayment);
+    expect((await loadPaymentResult({ orderCode: "1" }))?.needsPayment).toBe("payos");
+    mockContext.mockResolvedValue({ ...noPayment, method: "cod" });
+    expect((await loadPaymentResult({ orderCode: "1" }))?.needsPayment).toBe("cod");
+  });
+
+  it("đơn còn processing: chưa tạo giao dịch được, chờ", async () => {
+    mockContext.mockResolvedValue(noPayment);
+    mockGetMine.mockResolvedValue(order({ status: "processing" }));
+    expect(await loadPaymentResult({ orderCode: "1" })).toMatchObject({ needsPayment: null, order: { status: "processing" } });
+  });
+
+  it("đã có giao dịch thì không tạo lại", async () => {
+    mockContext.mockResolvedValue(payosContext);
+    expect((await loadPaymentResult({ orderCode: "1" }))?.needsPayment).toBeNull();
+  });
+
+  it("không có cookie (chỉ có UUID trên URL) thì không tự tạo giao dịch", async () => {
+    expect((await loadPaymentResult({ orderCode: ORDER_ID, method: "cod" }))?.needsPayment).toBeNull();
+  });
+
+  it("đơn đã huỷ hoặc thất bại thì không tạo giao dịch", async () => {
+    mockContext.mockResolvedValue(noPayment);
+    mockGetMine.mockResolvedValue(order({ status: "cancelled" }));
+    expect((await loadPaymentResult({ orderCode: "1" }))?.needsPayment).toBeNull();
   });
 });
 
@@ -86,30 +118,32 @@ describe("loadPaymentResult — trạng thái thanh toán thật", () => {
     mockContext.mockResolvedValue(payosContext);
     mockStatus.mockResolvedValue("success");
     mockGetMine.mockResolvedValue(order({ status: "paid", payment_status: "success" }));
-    expect(await loadPaymentResult({ orderCode: "1" })).toMatchObject({ status: "paid", payment_status: "success", payment_method: "payos" });
+    expect(await loadPaymentResult({ orderCode: "1" })).toMatchObject({
+      order: { status: "paid", payment_status: "success", payment_method: "payos" },
+    });
   });
 
   it("PayOS huỷ giữa chừng: giao dịch failed dù đơn vẫn pending", async () => {
     mockContext.mockResolvedValue(payosContext);
     mockStatus.mockResolvedValue("failed");
-    expect(await loadPaymentResult({ orderCode: "1" })).toMatchObject({ status: "pending", payment_status: "failed" });
+    expect(await loadPaymentResult({ orderCode: "1" })).toMatchObject({ order: { status: "pending", payment_status: "failed" } });
   });
 
   it("giao dịch còn pending thì giữ trạng thái suy ra từ đơn", async () => {
     mockContext.mockResolvedValue(payosContext);
-    expect((await loadPaymentResult({ orderCode: "1" }))?.payment_status).toBe("pending");
+    expect((await loadPaymentResult({ orderCode: "1" }))?.order.payment_status).toBe("pending");
   });
 
   it("không tin ?status=PAID trên URL", async () => {
     mockContext.mockResolvedValue(payosContext);
     const result = await loadPaymentResult({ orderCode: "1", status: "PAID" } as never);
-    expect(result?.payment_status).toBe("pending");
+    expect(result?.order.payment_status).toBe("pending");
   });
 
   it("giao dịch không thuộc người dùng (null) thì dùng trạng thái của đơn", async () => {
     mockContext.mockResolvedValue(payosContext);
     mockStatus.mockResolvedValue(null);
-    expect((await loadPaymentResult({ orderCode: "1" }))?.payment_status).toBe("pending");
+    expect((await loadPaymentResult({ orderCode: "1" }))?.order.payment_status).toBe("pending");
   });
 
   it.each([

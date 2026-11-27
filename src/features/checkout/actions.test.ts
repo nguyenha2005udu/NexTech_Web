@@ -6,8 +6,8 @@ import { productService } from "@/entities/product/service";
 import { ApiError } from "@/lib/api/http";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { makeProduct } from "@/lib/test-utils";
-import { placeOrder } from "./actions";
-import { writePaymentContext } from "./payment-context";
+import { placeOrder, startPayment } from "./actions";
+import { readPaymentContext, writePaymentContext } from "./payment-context";
 
 jest.mock("next/navigation", () => ({
   redirect: jest.fn((url: string) => {
@@ -18,8 +18,10 @@ jest.mock("@/lib/auth/session", () => ({ getSessionUser: jest.fn() }));
 jest.mock("@/entities/product/service", () => ({ productService: { getManyByIds: jest.fn() } }));
 jest.mock("@/entities/address/service", () => ({ addressService: { getMine: jest.fn() } }));
 jest.mock("@/entities/coupon/service", () => ({ couponService: { validate: jest.fn() } }));
-jest.mock("@/entities/order/service", () => ({ orderService: { create: jest.fn() } }));
-jest.mock("./payment-context", () => ({ writePaymentContext: jest.fn() }));
+jest.mock("@/entities/order/service", () => ({
+  orderService: { create: jest.fn(), getMine: jest.fn(), createPayment: jest.fn() },
+}));
+jest.mock("./payment-context", () => ({ writePaymentContext: jest.fn(), readPaymentContext: jest.fn() }));
 
 const mockSession = jest.mocked(getSessionUser);
 const mockProducts = jest.mocked(productService.getManyByIds);
@@ -27,6 +29,9 @@ const mockAddress = jest.mocked(addressService.getMine);
 const mockCreate = jest.mocked(orderService.create);
 const mockValidate = jest.mocked(couponService.validate);
 const mockWriteContext = jest.mocked(writePaymentContext);
+const mockReadContext = jest.mocked(readPaymentContext);
+const mockGetMine = jest.mocked(orderService.getMine);
+const mockCreatePayment = jest.mocked(orderService.createPayment);
 
 const user: SessionUser = { id: "u-1", email: "minh.anh@example.com", full_name: "Minh Anh", role: "user", avatar_url: null };
 const asus = makeProduct({ id: "p-asus", name: "ASUS Vivobook 15", price: 14_990_000, inStock: true });
@@ -250,5 +255,75 @@ describe("placeOrder — thử mã giảm giá", () => {
     mockValidate.mockRejectedValue(new ApiError(503, "Không kết nối được máy chủ"));
     expect(await placeOrder({ ...validInput, couponCodes: ["X"] })).toEqual({ ok: false, message: "Không kết nối được máy chủ" });
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("startPayment — tạo giao dịch cho đơn đặt lúc backend còn processing", () => {
+  const ctx = { orderId: ORDER_ID, paymentId: null, method: "payos" as const };
+  const pendingOrder = { id: ORDER_ID, status: "pending" as const, total: 1, payment_method: null, payment_status: null };
+
+  beforeEach(() => {
+    mockReadContext.mockResolvedValue(ctx);
+    mockGetMine.mockResolvedValue(pendingOrder);
+    mockCreatePayment.mockResolvedValue({ id: "pay-7", checkout_url: "https://pay.payos.vn/web/xyz" });
+  });
+
+  it("khách chưa đăng nhập bị chuyển tới /login", async () => {
+    mockSession.mockResolvedValue(null);
+    await expect(startPayment({ orderId: ORDER_ID })).rejects.toThrow("REDIRECT:/login");
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+  });
+
+  it("thiếu orderId bị từ chối", async () => {
+    expect(await startPayment({})).toMatchObject({ ok: false });
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+  });
+
+  it("PayOS: tạo giao dịch theo phương thức trong cookie, nhớ paymentId, trả link thanh toán", async () => {
+    expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: true, data: { redirectTo: "https://pay.payos.vn/web/xyz" } });
+    expect(mockCreatePayment).toHaveBeenCalledWith(ORDER_ID, "payos");
+    expect(mockWriteContext).toHaveBeenCalledWith({ ...ctx, paymentId: "pay-7" });
+  });
+
+  it("COD: tạo giao dịch, ở lại trang kết quả (không có link)", async () => {
+    mockReadContext.mockResolvedValue({ ...ctx, method: "cod" });
+    mockCreatePayment.mockResolvedValue({ id: "pay-8", checkout_url: null });
+    expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: true, data: { redirectTo: null } });
+    expect(mockCreatePayment).toHaveBeenCalledWith(ORDER_ID, "cod");
+  });
+
+  it("PayOS chưa có link: nhớ giao dịch nhưng báo lỗi để thử lại", async () => {
+    mockCreatePayment.mockResolvedValue({ id: "pay-7", checkout_url: null });
+    expect(await startPayment({ orderId: ORDER_ID })).toMatchObject({ ok: false });
+    expect(mockWriteContext).toHaveBeenCalledWith({ ...ctx, paymentId: "pay-7" });
+  });
+
+  it("không có cookie hoặc cookie của đơn khác thì từ chối, không gọi backend", async () => {
+    mockReadContext.mockResolvedValue(null);
+    expect(await startPayment({ orderId: ORDER_ID })).toMatchObject({ ok: false });
+    mockReadContext.mockResolvedValue({ ...ctx, orderId: "other" });
+    expect(await startPayment({ orderId: ORDER_ID })).toMatchObject({ ok: false });
+    expect(mockGetMine).not.toHaveBeenCalled();
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+  });
+
+  it("đã có giao dịch thì không tạo thêm", async () => {
+    mockReadContext.mockResolvedValue({ ...ctx, paymentId: "pay-1" });
+    expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: true, data: { redirectTo: null } });
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+  });
+
+  it("đơn không thuộc người dùng, hoặc không còn pending thì từ chối", async () => {
+    mockGetMine.mockResolvedValue(null);
+    expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: false, message: "Không tìm thấy đơn hàng" });
+    mockGetMine.mockResolvedValue({ ...pendingOrder, status: "cancelled" });
+    expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: false, message: "Đơn hàng không còn chờ thanh toán" });
+    expect(mockCreatePayment).not.toHaveBeenCalled();
+  });
+
+  it("backend báo lỗi (vd. PayOS 503) thì trả thông báo, không ghi cookie", async () => {
+    mockCreatePayment.mockRejectedValue(new ApiError(503, "Lỗi tạo link thanh toán PayOS, vui lòng thử lại", "NT-PAY-1006"));
+    expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: false, message: "Lỗi tạo link thanh toán PayOS, vui lòng thử lại" });
+    expect(mockWriteContext).not.toHaveBeenCalled();
   });
 });

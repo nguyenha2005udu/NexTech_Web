@@ -28,7 +28,14 @@ describe("paymentResultOf", () => {
   });
 
   it.each([
-    ["đang tạo đơn", { status: "processing" as const }],
+    ["PayOS", {}],
+    ["COD", { payment_method: "cod" as const, payment_status: null }],
+    ["chưa biết phương thức", { payment_method: null }],
+  ])("%s: đơn còn processing → 'Đơn hàng đang được xử lý'", (_label, override) => {
+    expect(paymentResultOf(order({ status: "processing", ...override }))).toBe("processing");
+  });
+
+  it.each([
     ["chờ xử lý, giao dịch chờ", { status: "pending" as const, payment_status: "pending" as const }],
     ["chưa có bản ghi thanh toán", { payment_status: null }],
   ])("PayOS %s → 'Đang xác nhận thanh toán' (03.10)", (_label, override) => {

@@ -223,6 +223,24 @@ describe("orderService — huỷ và thanh toán lại", () => {
   });
 });
 
+describe("orderService.createPayment", () => {
+  it("POST /api/payments cho đơn đã pending, PayOS trả link", async () => {
+    backend({ "POST /api/payments": { id: "pay-3", payment_url: "https://pay.payos.vn/x" } });
+    expect(await orderService.createPayment("o-1", "payos")).toEqual({ id: "pay-3", checkout_url: "https://pay.payos.vn/x" });
+    expect(calls()[0]).toEqual(["/api/payments", expect.objectContaining({ method: "POST", body: { order_id: "o-1", method: "payos" } })]);
+  });
+
+  it("COD: không có link", async () => {
+    backend({ "POST /api/payments": { id: "pay-4", payment_url: "https://x" } });
+    expect(await orderService.createPayment("o-1", "cod")).toEqual({ id: "pay-4", checkout_url: null });
+  });
+
+  it("đã có giao dịch (409 NT-PAY-1003) thì lỗi nổi lên cho action", async () => {
+    backend({ "POST /api/payments": new ApiError(409, "Đã có giao dịch", "NT-PAY-1003") });
+    await expect(orderService.createPayment("o-1", "cod")).rejects.toMatchObject({ status: 409, code: "NT-PAY-1003" });
+  });
+});
+
 describe("orderService.getPaymentStatus", () => {
   it("gọi GET /api/payments/:id/status và trả trạng thái", async () => {
     backend({ "GET /api/payments/pay-1/status": { id: "pay-1", status: "success", paid_at: "2026-11-27T01:00:00.000Z" } });

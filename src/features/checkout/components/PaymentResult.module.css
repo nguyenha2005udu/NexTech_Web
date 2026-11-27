@@ -120,3 +120,16 @@
   border-color: var(--c-primary);
   color: var(--c-primary-text);
 }
+
+/* Dòng trạng thái tự cập nhật (đơn đang xử lý / đang tạo thanh toán) */
+.live {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--c-ink-muted);
+}
