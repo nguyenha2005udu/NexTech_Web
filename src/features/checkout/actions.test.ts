@@ -6,7 +6,7 @@ import { productService } from "@/entities/product/service";
 import { ApiError } from "@/lib/api/http";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { makeProduct } from "@/lib/test-utils";
-import { placeOrder, startPayment } from "./actions";
+import { placeOrder, reorderItems, startPayment } from "./actions";
 import { readPaymentContext, writePaymentContext } from "./payment-context";
 
 jest.mock("next/navigation", () => ({
@@ -19,7 +19,7 @@ jest.mock("@/entities/product/service", () => ({ productService: { getManyByIds:
 jest.mock("@/entities/address/service", () => ({ addressService: { getMine: jest.fn() } }));
 jest.mock("@/entities/coupon/service", () => ({ couponService: { validate: jest.fn() } }));
 jest.mock("@/entities/order/service", () => ({
-  orderService: { create: jest.fn(), getMine: jest.fn(), createPayment: jest.fn() },
+  orderService: { create: jest.fn(), getMine: jest.fn(), createPayment: jest.fn(), getDetailMine: jest.fn() },
 }));
 jest.mock("./payment-context", () => ({ writePaymentContext: jest.fn(), readPaymentContext: jest.fn() }));
 
@@ -32,6 +32,7 @@ const mockWriteContext = jest.mocked(writePaymentContext);
 const mockReadContext = jest.mocked(readPaymentContext);
 const mockGetMine = jest.mocked(orderService.getMine);
 const mockCreatePayment = jest.mocked(orderService.createPayment);
+const mockGetDetail = jest.mocked(orderService.getDetailMine);
 
 const user: SessionUser = { id: "u-1", email: "minh.anh@example.com", full_name: "Minh Anh", role: "user", avatar_url: null };
 const asus = makeProduct({ id: "p-asus", name: "ASUS Vivobook 15", price: 14_990_000, inStock: true });
@@ -325,5 +326,60 @@ describe("startPayment — tạo giao dịch cho đơn đặt lúc backend còn 
     mockCreatePayment.mockRejectedValue(new ApiError(503, "Lỗi tạo link thanh toán PayOS, vui lòng thử lại", "NT-PAY-1006"));
     expect(await startPayment({ orderId: ORDER_ID })).toEqual({ ok: false, message: "Lỗi tạo link thanh toán PayOS, vui lòng thử lại" });
     expect(mockWriteContext).not.toHaveBeenCalled();
+  });
+});
+
+describe("reorderItems — Đặt lại", () => {
+  const detail = (items: Array<{ product_id: string; quantity: number }>) =>
+    ({ id: ORDER_ID, status: "cancelled", items: items.map((i) => ({ ...i, name: "x", unit_price: 1 })) }) as never;
+  const laptop = makeProduct({ id: "p-asus", slug: "asus", name: "ASUS Vivobook 15", price: 14_990_000, inStock: true, stockQuantity: 5 });
+  const mouse = makeProduct({ id: "p-mouse", slug: "mouse", name: "Chuột", price: 300_000, inStock: true });
+
+  it("khách chưa đăng nhập bị chuyển tới /login", async () => {
+    mockSession.mockResolvedValue(null);
+    await expect(reorderItems({ orderId: ORDER_ID })).rejects.toThrow("REDIRECT:/login");
+    expect(mockGetDetail).not.toHaveBeenCalled();
+  });
+
+  it("thiếu mã đơn bị từ chối", async () => {
+    expect(await reorderItems({})).toMatchObject({ ok: false });
+  });
+
+  it("đơn không thuộc người dùng (backend trả null) thì từ chối, không đọc sản phẩm", async () => {
+    mockGetDetail.mockResolvedValue(null);
+    expect(await reorderItems({ orderId: ORDER_ID })).toEqual({ ok: false, message: "Không tìm thấy đơn hàng" });
+    expect(mockProducts).not.toHaveBeenCalled();
+  });
+
+  it("trả sản phẩm của đơn với giá và tồn kho HIỆN TẠI, số lượng như đơn cũ", async () => {
+    mockGetDetail.mockResolvedValue(detail([{ product_id: "p-asus", quantity: 2 }, { product_id: "p-mouse", quantity: 1 }]));
+    mockProducts.mockResolvedValue([laptop, mouse]);
+    const result = await reorderItems({ orderId: ORDER_ID });
+    expect(result).toEqual({
+      ok: true,
+      data: {
+        skipped: 0,
+        lines: [
+          { product: expect.objectContaining({ id: "p-asus", slug: "asus", price: 14_990_000, stockQuantity: 5 }), quantity: 2 },
+          { product: expect.objectContaining({ id: "p-mouse", price: 300_000 }), quantity: 1 },
+        ],
+      },
+    });
+  });
+
+  it("chỉ trả các trường cần cho giỏ, không kèm mô tả dài hay thông số", async () => {
+    mockGetDetail.mockResolvedValue(detail([{ product_id: "p-asus", quantity: 1 }]));
+    mockProducts.mockResolvedValue([laptop]);
+    const result = await reorderItems({ orderId: ORDER_ID });
+    const product = result.ok ? result.data.lines[0]?.product : undefined;
+    expect(Object.keys(product ?? {}).sort()).toEqual(["id", "images", "name", "price", "slug", "stockQuantity", "summary"]);
+  });
+
+  it("bỏ qua sản phẩm hết hàng, ngừng bán hoặc không còn, và đếm số bị bỏ", async () => {
+    mockGetDetail.mockResolvedValue(
+      detail([{ product_id: "p-asus", quantity: 1 }, { product_id: "p-mouse", quantity: 1 }, { product_id: "p-gone", quantity: 1 }]),
+    );
+    mockProducts.mockResolvedValue([{ ...laptop, stockQuantity: 0 }, { ...mouse, inStock: false }]);
+    expect(await reorderItems({ orderId: ORDER_ID })).toEqual({ ok: true, data: { lines: [], skipped: 3 } });
   });
 });

@@ -183,12 +183,19 @@ export const orderService = {
    * Trạng thái giao dịch (`GET /api/payments/:id/status`). Giao dịch PayOS còn `pending` thì backend CHỦ ĐỘNG hỏi PayOS
    * rồi đồng bộ đơn (webhook không gọi được vào localhost) — nên gọi trước khi đọc đơn. `null` khi giao dịch không
    * thuộc người đang đăng nhập hoặc không tồn tại.
+   *
+   * Bước này chỉ BỔ SUNG cho trang kết quả (trạng thái đơn vẫn đọc được riêng), nên backend lỗi (5xx) hoặc không kết nối
+   * được (`apiFetch` đổi thành 503) cũng trả `null`: khách vừa trả tiền xong vẫn thấy đơn thay vì trang lỗi chung.
    */
   async getPaymentStatus(paymentId: string): Promise<PaymentStatus | null> {
     try {
       return (await apiFetch<RawPaymentStatus>(`/api/payments/${encodeURIComponent(paymentId)}/status`)).status;
     } catch (err) {
       if (isNotMine(err)) return null;
+      if (err instanceof ApiError && err.status >= 500) {
+        console.warn(`[payments] Không hỏi được trạng thái giao dịch (HTTP ${err.status}), dùng trạng thái của đơn`);
+        return null;
+      }
       throw err;
     }
   },

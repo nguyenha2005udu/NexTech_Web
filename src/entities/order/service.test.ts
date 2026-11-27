@@ -252,9 +252,17 @@ describe("orderService.getPaymentStatus", () => {
     expect(await orderService.getPaymentStatus("pay-1")).toBeNull();
   });
 
-  it("lỗi khác (vd. 500) được ném lên", async () => {
-    backend({ "GET /api/payments/pay-1/status": new ApiError(500, "lỗi", "NT-GEN-0500") });
-    await expect(orderService.getPaymentStatus("pay-1")).rejects.toMatchObject({ status: 500 });
+  it.each([500, 502, 503])("backend lỗi %i (hoặc không kết nối được) → null để trang kết quả vẫn hiện đơn", async (status) => {
+    const warn = jest.spyOn(console, "warn").mockImplementation(() => undefined);
+    backend({ "GET /api/payments/pay-1/status": new ApiError(status, "lỗi", "NT-GEN-0503") });
+    expect(await orderService.getPaymentStatus("pay-1")).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining(`HTTP ${status}`));
+    warn.mockRestore();
+  });
+
+  it("lỗi 4xx khác (vd. 401 hết phiên) vẫn được ném lên", async () => {
+    backend({ "GET /api/payments/pay-1/status": new ApiError(401, "Hết phiên", "NT-AUT-0001") });
+    await expect(orderService.getPaymentStatus("pay-1")).rejects.toMatchObject({ status: 401 });
   });
 });
 
