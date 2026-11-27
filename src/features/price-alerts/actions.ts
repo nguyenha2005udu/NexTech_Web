@@ -1,7 +1,7 @@
 "use server";
 
 // FDD 6.1.1 + 6.1.3 — Tạo / xoá cảnh báo giá. Server Action là endpoint công khai (mục 10.3):
-// requirePermission("price-alert:manage") → zod → kiểm giá thật ở server → ghi.
+// requirePermission("price-alert:manage") → zod → kiểm giá thật ở server → catalog-service.
 import { revalidatePath } from "next/cache";
 import { routes } from "@/config/routes";
 import { MAX_PRICE_ALERTS } from "@/entities/price-alert";
@@ -27,16 +27,16 @@ export async function createPriceAlert(input: unknown): Promise<ActionResult<{ a
   }
 
   try {
-    const mine = await priceAlertService.listMine();
-    const isNew = !mine.some((a) => a.product_id === product.id);
-    if (isNew && mine.length >= MAX_PRICE_ALERTS) {
+    const active = (await priceAlertService.listMine()).filter((a) => a.status === "active");
+    if (active.length >= MAX_PRICE_ALERTS) {
       return { ok: false, message: `Bạn chỉ theo dõi được tối đa ${MAX_PRICE_ALERTS} sản phẩm` };
     }
-    const alert = await priceAlertService.upsert(product.id, parsed.data.targetPrice);
+    const alert = await priceAlertService.create(product.id, parsed.data.targetPrice);
     revalidatePath(routes.priceAlerts);
     return { ok: true, data: { alertId: alert.id } };
   } catch (err) {
-    return failed(err);
+    // NT-CAT-1008: đang theo dõi sản phẩm này rồi (BR-12) — hiện ngay dưới ô giá.
+    return failed(err, { "NT-CAT-1008": "targetPrice" });
   }
 }
 

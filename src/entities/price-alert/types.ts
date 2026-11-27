@@ -6,9 +6,12 @@ export interface PriceAlert {
   target_price: number;
   /** ISO 8601 */
   created_at: string;
-  /** Đã gửi thông báo khi chạm mục tiêu (6.1.4); `null` = còn đang theo dõi */
-  triggered_at: string | null;
+  /** `triggered` = giá đã chạm mục tiêu và đã gửi thông báo (6.1.4, job của backend) */
+  status: PriceAlertStatus;
 }
+
+/** Backend còn có `cancelled` (đã xoá) — không bao giờ trả ra khỏi service. */
+export type PriceAlertStatus = "active" | "triggered";
 
 /** Tối đa số cảnh báo giá mỗi người (chống rác) */
 export const MAX_PRICE_ALERTS = 20;

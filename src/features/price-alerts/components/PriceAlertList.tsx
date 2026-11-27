@@ -47,7 +47,7 @@ export function PriceAlertList({ alerts, products }: Props) {
             </p>
           </div>
           <div className={styles.side}>
-            {alert.triggered_at ? <Tag color="green">Đã chạm mục tiêu</Tag> : <Tag>Đang theo dõi</Tag>}
+            {alert.status === "triggered" ? <Tag color="green">Đã chạm mục tiêu</Tag> : <Tag>Đang theo dõi</Tag>}
             <RemovePriceAlertButton alertId={alert.id} productName={product.name} />
           </div>
         </li>

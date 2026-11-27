@@ -18,7 +18,7 @@ const alert = (override: Partial<PriceAlert> = {}): PriceAlert => ({
   product_id: "p-asus",
   target_price: 13_000_000,
   created_at: "2026-11-24T03:00:00.000Z",
-  triggered_at: null,
+  status: "active",
   ...override,
 });
 const asus = makeProduct({ id: "p-asus", slug: "asus-vivobook-15", name: "ASUS Vivobook 15", price: 14_990_000 });
@@ -87,7 +87,7 @@ describe("PriceAlertList", () => {
   });
 
   it("cảnh báo đã chạm mục tiêu có nhãn riêng", () => {
-    renderWithProviders(<PriceAlertList alerts={[alert({ triggered_at: "2026-11-25T01:00:00.000Z" })]} products={[asus]} />);
+    renderWithProviders(<PriceAlertList alerts={[alert({ status: "triggered" })]} products={[asus]} />);
     expect(screen.getByText("Đã chạm mục tiêu")).toBeInTheDocument();
   });
 
