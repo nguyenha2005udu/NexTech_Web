@@ -1,7 +1,7 @@
 export interface Review {
   id: string;
   productId: string;
-  /** Tên hiển thị; backend ẩn danh hoá thành "Người mua đã xác minh" khi cần */
+  /** Tên người viết lúc đánh giá (backend lưu bản chụp); không có thì "Ẩn danh" */
   authorLabel: string;
   rating: number;
   content: string;
@@ -19,7 +19,6 @@ export interface ReviewPage {
 
 /** Dữ liệu người dùng gửi khi viết đánh giá (FDD 5.2.4). Người viết do phiên quyết định, không gửi userId. */
 export interface CreateReviewInput {
-  orderId: string;
   productId: string;
   rating: number;
   content: string;

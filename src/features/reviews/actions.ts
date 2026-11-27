@@ -1,8 +1,8 @@
 "use server";
 
 // FDD 5.2.4 — Viết đánh giá sản phẩm đã mua. Server Action là endpoint công khai (mục 10.3):
-// requirePermission("review:create") → zod → đơn phải là CỦA CHÍNH người dùng, đủ điều kiện, có sản phẩm đó,
-// chưa đánh giá → ghi → revalidate trang sản phẩm (ISR) và chi tiết đơn.
+// requirePermission("review:create") → zod → đơn phải là CỦA CHÍNH người dùng, đủ điều kiện, có sản phẩm đó
+// → catalog-service (kiểm lại đã mua + chưa đánh giá) → revalidate trang sản phẩm (ISR) và chi tiết đơn.
 import { revalidatePath } from "next/cache";
 import { routes } from "@/config/routes";
 import { orderService } from "@/entities/order/service";
@@ -26,12 +26,8 @@ export async function createReview(input: unknown): Promise<ActionResult<{ revie
   if (!order.items.some((i) => i.product_id === productId)) {
     return { ok: false, message: "Sản phẩm này không có trong đơn hàng" };
   }
-  if ((await reviewService.reviewedProductIds(orderId)).includes(productId)) {
-    return { ok: false, message: "Bạn đã đánh giá sản phẩm này rồi" };
-  }
-
   try {
-    const review = await reviewService.create({ orderId, productId, rating, content });
+    const review = await reviewService.create({ productId, rating, content });
     const [product] = await productService.getManyByIds([productId]);
     if (product) revalidatePath(routes.product(product.slug));
     revalidatePath(routes.orderDetail(orderId));

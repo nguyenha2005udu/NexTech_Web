@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { orderService } from "@/entities/order/service";
 import { productService } from "@/entities/product/service";
 import { reviewService } from "@/entities/review/service";
+import { ApiError } from "@/lib/api/http";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { makeProduct } from "@/lib/test-utils";
 import { createReview } from "./actions";
@@ -16,14 +17,23 @@ jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 jest.mock("@/lib/auth/session", () => ({ getSessionUser: jest.fn() }));
 jest.mock("@/entities/order/service", () => ({ orderService: { getDetailMine: jest.fn() } }));
 jest.mock("@/entities/product/service", () => ({ productService: { getManyByIds: jest.fn() } }));
-jest.mock("@/entities/review/service", () => ({
-  reviewService: { reviewedProductIds: jest.fn(), create: jest.fn() },
-}));
+jest.mock("@/entities/review/service", () => ({ reviewService: { create: jest.fn() } }));
+jest.mock("@/lib/api/http", () => {
+  class ApiError extends Error {
+    constructor(
+      readonly status: number,
+      message: string,
+      readonly code?: string,
+    ) {
+      super(message);
+    }
+  }
+  return { ApiError };
+});
 
 const mockSession = jest.mocked(getSessionUser);
 const mockOrder = jest.mocked(orderService.getDetailMine);
 const mockProducts = jest.mocked(productService.getManyByIds);
-const mockReviewed = jest.mocked(reviewService.reviewedProductIds);
 const mockCreate = jest.mocked(reviewService.create);
 
 const user: SessionUser = { id: "u-1", email: "a@example.com", full_name: "A", role: "user", avatar_url: null };
@@ -47,7 +57,6 @@ beforeEach(() => {
   mockSession.mockResolvedValue(user);
   mockOrder.mockResolvedValue(order);
   mockProducts.mockResolvedValue([makeProduct({ id: "p-asus", slug: "asus-vivobook-15" })]);
-  mockReviewed.mockResolvedValue([]);
   mockCreate.mockResolvedValue({ id: "r-1", productId: "p-asus", authorLabel: "x", rating: 5, content: "x", createdAt: "" });
 });
 afterEach(() => jest.clearAllMocks());
@@ -98,16 +107,16 @@ describe("createReview", () => {
     });
   });
 
-  it("đã đánh giá rồi thì không cho đánh giá lại", async () => {
-    mockReviewed.mockResolvedValue(["p-asus"]);
+  it("đã đánh giá rồi (403 NT-CAT-1007 từ backend) thì trả nguyên thông báo, không làm mới trang", async () => {
+    mockCreate.mockRejectedValue(new ApiError(403, "Bạn đã đánh giá sản phẩm này rồi", "NT-CAT-1007"));
     expect(await createReview(valid)).toEqual({ ok: false, message: "Bạn đã đánh giá sản phẩm này rồi" });
-    expect(mockCreate).not.toHaveBeenCalled();
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 
   it("ghi đánh giá, cắt khoảng trắng thừa, rồi làm mới trang sản phẩm và chi tiết đơn", async () => {
     const result = await createReview({ ...valid, content: "  Máy chạy rất mượt, đáng tiền.  " });
     expect(result).toEqual({ ok: true, data: { reviewId: "r-1" } });
-    expect(mockCreate).toHaveBeenCalledWith({ ...valid, content: "Máy chạy rất mượt, đáng tiền." });
+    expect(mockCreate).toHaveBeenCalledWith({ productId: "p-asus", rating: 5, content: "Máy chạy rất mượt, đáng tiền." });
     expect(revalidatePath).toHaveBeenCalledWith("/products/asus-vivobook-15");
     expect(revalidatePath).toHaveBeenCalledWith("/account/orders/o-1");
   });
