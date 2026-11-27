@@ -223,6 +223,24 @@ describe("orderService — huỷ và thanh toán lại", () => {
   });
 });
 
+describe("orderService.getPaymentStatus", () => {
+  it("gọi GET /api/payments/:id/status và trả trạng thái", async () => {
+    backend({ "GET /api/payments/pay-1/status": { id: "pay-1", status: "success", paid_at: "2026-11-27T01:00:00.000Z" } });
+    expect(await orderService.getPaymentStatus("pay-1")).toBe("success");
+    expect(calls()[0]?.[0]).toBe("/api/payments/pay-1/status");
+  });
+
+  it.each([400, 403, 404])("%i (giao dịch không phải của người dùng / không tồn tại) → null", async (status) => {
+    backend({ "GET /api/payments/pay-1/status": new ApiError(status, "x", "NT-PAY-1007") });
+    expect(await orderService.getPaymentStatus("pay-1")).toBeNull();
+  });
+
+  it("lỗi khác (vd. 500) được ném lên", async () => {
+    backend({ "GET /api/payments/pay-1/status": new ApiError(500, "lỗi", "NT-GEN-0500") });
+    await expect(orderService.getPaymentStatus("pay-1")).rejects.toMatchObject({ status: 500 });
+  });
+});
+
 describe("paymentStatusOf", () => {
   it.each([
     ["paid", "success"],

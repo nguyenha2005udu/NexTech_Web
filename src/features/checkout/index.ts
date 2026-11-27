@@ -8,3 +8,4 @@ export { CheckoutPage } from "./components/CheckoutPage";
 export { parseBuyNowParams, toBuyNowLine } from "./buy-now";
 export { paymentResultOf, type PaymentResultKind } from "./payment-result";
 export { PaymentResult } from "./components/PaymentResult";
+export { loadPaymentResult, type PaymentResultParams } from "./load-payment-result";
