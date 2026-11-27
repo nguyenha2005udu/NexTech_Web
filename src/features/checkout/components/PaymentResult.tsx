@@ -11,6 +11,7 @@ import { formatOrderCode, formatVND } from "@/lib/format";
 import { canRetryPayment, paymentResultOf, type PaymentResultKind } from "../payment-result";
 import { PaymentStarter } from "./PaymentStarter";
 import { ProcessingRefresh } from "./ProcessingRefresh";
+import { ReorderButton } from "./ReorderButton";
 import { RetryPaymentButton } from "./RetryPaymentButton";
 import styles from "./PaymentResult.module.css";
 
@@ -83,10 +84,9 @@ export function PaymentResult({ order, needsPayment = null }: Props) {
           {canRetryPayment(order) ? (
             <RetryPaymentButton orderId={order.id} />
           ) : kind === "failed" ? (
-            // Đơn đã huỷ / hết hạn giữ hàng: không thanh toán lại được, hàng trong giỏ vẫn còn để đặt lại.
-            <Link href={routes.cart} className={styles.secondary}>
-              Đặt lại
-            </Link>
+            // Đơn đã huỷ / hết hạn giữ hàng: không thanh toán lại được. Giỏ của web đã bỏ các dòng đã đặt nên
+            // "Đặt lại" nạp sản phẩm của đơn vào giỏ trước khi sang giỏ hàng.
+            <ReorderButton orderId={order.id} />
           ) : (
             <Link href={routes.home} className={styles.secondary}>
               Tiếp tục mua sắm

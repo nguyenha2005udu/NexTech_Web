@@ -12,10 +12,11 @@ import { productService } from "@/entities/product/service";
 import { failed, invalid } from "@/lib/action-result";
 import { ApiError } from "@/lib/api/http";
 import { requirePermission } from "@/lib/auth/guards";
+import type { CartProduct } from "@/features/cart";
 import type { ActionResult } from "@/types/action";
 import { readPaymentContext, writePaymentContext } from "./payment-context";
 import { SHIPPING_FEE } from "./pricing";
-import { placeOrderSchema, retryPaymentSchema, startPaymentSchema } from "./schemas";
+import { placeOrderSchema, reorderSchema, retryPaymentSchema, startPaymentSchema } from "./schemas";
 
 export type PlaceOrderResult = {
   orderId: string;
@@ -158,4 +159,37 @@ export async function startPayment(input: unknown): Promise<ActionResult<{ redir
   } catch (err) {
     return failed(err);
   }
+}
+
+/** Một sản phẩm của đơn cũ để nạp lại vào giỏ: thông tin HIỆN TẠI của sản phẩm (giá, tồn kho), số lượng như đơn cũ. */
+export type ReorderLine = { product: CartProduct; quantity: number };
+
+export type ReorderResult = {
+  lines: ReorderLine[];
+  /** Số sản phẩm trong đơn cũ nay đã hết hàng hoặc ngừng bán nên không nạp lại được */
+  skipped: number;
+};
+
+/**
+ * FDD 5.1.2 — "Đặt lại" khi đơn đã huỷ / hết hạn giữ hàng. Khi đặt xong, các dòng đã đặt bị bỏ khỏi giỏ của web nên giỏ
+ * đang trống: trả lại sản phẩm của đơn (đơn phải của chính người dùng — backend kiểm) để client nạp vào giỏ.
+ * Giá và tồn kho lấy lại từ server, không dùng giá lúc đặt.
+ */
+export async function reorderItems(input: unknown): Promise<ActionResult<ReorderResult>> {
+  await requirePermission("order:own");
+  const parsed = reorderSchema.safeParse(input);
+  if (!parsed.success) return invalid(parsed.error);
+
+  const order = await orderService.getDetailMine(parsed.data.orderId);
+  if (!order) return { ok: false, message: "Không tìm thấy đơn hàng" };
+
+  const products = await productService.getManyByIds(order.items.map((i) => i.product_id));
+  const lines: ReorderLine[] = [];
+  for (const item of order.items) {
+    const product = products.find((p) => p.id === item.product_id);
+    if (!product || !product.inStock || product.stockQuantity === 0) continue;
+    const { id, slug, name, summary, price, images, stockQuantity } = product;
+    lines.push({ product: { id, slug, name, summary, price, images, stockQuantity }, quantity: item.quantity });
+  }
+  return { ok: true, data: { lines, skipped: order.items.length - lines.length } };
 }

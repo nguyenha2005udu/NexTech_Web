@@ -1,11 +1,11 @@
 import { screen } from "@testing-library/react";
 import type { MyOrderSummary } from "@/entities/order";
-import { renderWithAntd, setupUser } from "@/lib/test-utils";
+import { renderWithAntd, renderWithProviders, setupUser } from "@/lib/test-utils";
 import { retryPayment, startPayment } from "../actions";
 import { PaymentResult } from "./PaymentResult";
 
-jest.mock("../actions", () => ({ retryPayment: jest.fn(), startPayment: jest.fn() }));
-jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh: jest.fn() }) }));
+jest.mock("../actions", () => ({ retryPayment: jest.fn(), startPayment: jest.fn(), reorderItems: jest.fn() }));
+jest.mock("next/navigation", () => ({ useRouter: () => ({ refresh: jest.fn(), push: jest.fn() }) }));
 const mockRetry = jest.mocked(retryPayment);
 const mockStart = jest.mocked(startPayment);
 
@@ -61,15 +61,15 @@ describe("PaymentResult", () => {
     renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status: "pending", payment_status: "failed" })} />);
     expect(screen.getByRole("heading", { level: 1, name: "Thanh toán chưa hoàn tất" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Thanh toán lại" })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Đặt lại" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Đặt lại" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tiếp tục mua sắm" })).not.toBeInTheDocument();
   });
 
-  it.each(["cancelled", "failed"] as const)("đơn %s (hết hạn giữ hàng): không thanh toán lại được, chỉ có Đặt lại về giỏ hàng", (status) => {
-    renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status, payment_status: "failed" })} />);
+  it.each(["cancelled", "failed"] as const)("đơn %s (hết hạn giữ hàng): không thanh toán lại được, chỉ có nút Đặt lại", (status) => {
+    renderWithProviders(<PaymentResult order={order({ payment_method: "payos", status, payment_status: "failed" })} />);
     expect(screen.getByRole("heading", { level: 1, name: "Thanh toán chưa hoàn tất" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Thanh toán lại" })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Đặt lại" })).toHaveAttribute("href", "/cart");
+    expect(screen.getByRole("button", { name: "Đặt lại" })).toBeInTheDocument();
   });
 
   it("bấm Thanh toán lại khi chưa tạo được link mới thì báo lỗi, không rời trang", async () => {
