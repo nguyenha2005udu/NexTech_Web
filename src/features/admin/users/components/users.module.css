@@ -1,0 +1,125 @@
+/* FDD 8.4 — Quản lý người dùng (design/admin/07). Chưa có mockup: theo mẫu bảng chung design/admin/00 §5 */
+
+/* ===== Toolbar ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.search {
+  width: 220px;
+}
+
+.filterSelect {
+  width: 170px;
+}
+
+/* ===== Bảng ===== */
+.person {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.personText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.name {
+  font-weight: 600;
+}
+
+.muted {
+  color: #8c8c8c;
+}
+
+.small {
+  font-size: 12px;
+}
+
+.actions {
+  display: inline-flex;
+  gap: 16px;
+  justify-content: flex-end;
+}
+
+.linkButton {
+  height: auto;
+  padding: 0;
+}
+
+.unlock {
+  color: #52c41a;
+}
+
+.unlock:not(:disabled):hover {
+  color: #73d13d;
+}
+
+/* ===== Drawer ===== */
+.header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.headerName {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.sectionLabel {
+  margin: 16px 0 4px;
+  color: #8c8c8c;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.descriptions :global(.ant-descriptions-row) {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.descriptions :global(.ant-descriptions-item) {
+  padding: 10px 0;
+}
+
+.label {
+  color: #8c8c8c;
+}
+
+.value {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+.statusCell {
+  display: inline-flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.roleSelect {
+  width: 140px;
+}
+
+.interests {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.selfNote {
+  margin: 12px 0 0;
+  color: #8c8c8c;
+  font-size: 12px;
+}
