@@ -140,10 +140,13 @@ export const orderService = {
     });
 
     let checkoutUrl: string | null = null;
+    let paymentId: string | null = null;
     // 202: đơn còn `processing` (saga chưa xong) → chưa tạo thanh toán được, trang kết quả sẽ hiện "đang xử lý".
     if (order.status === "pending") {
       try {
-        checkoutUrl = (await requestPayment(order.id, input.payment_method)).payment_url;
+        const payment = await requestPayment(order.id, input.payment_method);
+        checkoutUrl = payment.payment_url;
+        paymentId = payment.id;
       } catch (err) {
         // Đơn đã tạo: không báo lỗi đặt hàng. Người dùng xem kết quả và thử lại thanh toán ở đó.
         if (!(err instanceof ApiError)) throw err;
@@ -154,6 +157,7 @@ export const orderService = {
       status: order.status,
       total: Number(order.total ?? 0),
       payment_method: input.payment_method,
+      payment_id: paymentId,
       checkout_url: input.payment_method === "payos" ? checkoutUrl : null,
     };
   },

@@ -85,6 +85,8 @@ export interface CreatedOrder {
   status: OrderStatus;
   total: number;
   payment_method: PaymentMethod;
+  /** Id giao dịch vừa tạo; `null` khi chưa tạo được (đơn còn `processing`, hoặc backend lỗi lúc tạo thanh toán). */
+  payment_id: string | null;
   /** Link thanh toán PayOS; `null` với COD, hoặc khi chưa tạo được link (xem trang kết quả để thử lại). */
   checkout_url: string | null;
 }

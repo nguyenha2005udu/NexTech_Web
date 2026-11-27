@@ -7,6 +7,7 @@ import { ApiError } from "@/lib/api/http";
 import { getSessionUser, type SessionUser } from "@/lib/auth/session";
 import { makeProduct } from "@/lib/test-utils";
 import { placeOrder } from "./actions";
+import { writePaymentContext } from "./payment-context";
 
 jest.mock("next/navigation", () => ({
   redirect: jest.fn((url: string) => {
@@ -18,12 +19,14 @@ jest.mock("@/entities/product/service", () => ({ productService: { getManyByIds:
 jest.mock("@/entities/address/service", () => ({ addressService: { getMine: jest.fn() } }));
 jest.mock("@/entities/coupon/service", () => ({ couponService: { validate: jest.fn() } }));
 jest.mock("@/entities/order/service", () => ({ orderService: { create: jest.fn() } }));
+jest.mock("./payment-context", () => ({ writePaymentContext: jest.fn() }));
 
 const mockSession = jest.mocked(getSessionUser);
 const mockProducts = jest.mocked(productService.getManyByIds);
 const mockAddress = jest.mocked(addressService.getMine);
 const mockCreate = jest.mocked(orderService.create);
 const mockValidate = jest.mocked(couponService.validate);
+const mockWriteContext = jest.mocked(writePaymentContext);
 
 const user: SessionUser = { id: "u-1", email: "minh.anh@example.com", full_name: "Minh Anh", role: "user", avatar_url: null };
 const asus = makeProduct({ id: "p-asus", name: "ASUS Vivobook 15", price: 14_990_000, inStock: true });
@@ -54,6 +57,7 @@ beforeEach(() => {
     status: "pending",
     total: 150_000,
     payment_method: input.payment_method,
+    payment_id: "pay-1",
     checkout_url: null,
   }));
 });
@@ -177,7 +181,7 @@ describe("placeOrder — tạo đơn", () => {
   });
 
   it("PayOS chưa tạo được link: về trang kết quả để thử lại, không báo lỗi đặt hàng", async () => {
-    mockCreate.mockResolvedValue({ id: ORDER_ID, status: "pending", total: 1, payment_method: "payos", checkout_url: null });
+    mockCreate.mockResolvedValue({ id: ORDER_ID, status: "pending", total: 1, payment_method: "payos", payment_id: null, checkout_url: null });
     const result = await placeOrder({ ...validInput, paymentMethod: "payos" });
     expect(result).toMatchObject({ ok: true, data: { redirectTo: `/checkout/result?orderCode=${ORDER_ID}&method=payos` } });
   });
@@ -188,6 +192,7 @@ describe("placeOrder — tạo đơn", () => {
       status: "processing",
       total: 15_020_000,
       payment_method: "payos",
+      payment_id: "pay-1",
       checkout_url: "https://pay.payos.vn/web/abc",
     });
     const result = await placeOrder({ ...validInput, paymentMethod: "payos" });
@@ -197,6 +202,25 @@ describe("placeOrder — tạo đơn", () => {
   it("lỗi backend khi tạo đơn trả về thông báo cho người dùng", async () => {
     mockCreate.mockRejectedValue(new ApiError(409, "Sản phẩm vừa hết hàng", "NT-ORD-1001"));
     expect(await placeOrder(validInput)).toEqual({ ok: false, message: "Sản phẩm vừa hết hàng" });
+  });
+});
+
+describe("placeOrder — nhớ ngữ cảnh thanh toán", () => {
+  it("ghi orderId, paymentId và phương thức để trang kết quả hỏi lại backend", async () => {
+    await placeOrder({ ...validInput, paymentMethod: "payos" });
+    expect(mockWriteContext).toHaveBeenCalledWith({ orderId: ORDER_ID, paymentId: "pay-1", method: "payos" });
+  });
+
+  it("chưa có giao dịch (đơn còn processing) thì paymentId là null", async () => {
+    mockCreate.mockResolvedValue({ id: ORDER_ID, status: "processing", total: 1, payment_method: "cod", payment_id: null, checkout_url: null });
+    await placeOrder(validInput);
+    expect(mockWriteContext).toHaveBeenCalledWith({ orderId: ORDER_ID, paymentId: null, method: "cod" });
+  });
+
+  it("đặt đơn lỗi thì không ghi gì", async () => {
+    mockCreate.mockRejectedValue(new ApiError(409, "Sản phẩm vừa hết hàng", "NT-ORD-1001"));
+    await placeOrder(validInput);
+    expect(mockWriteContext).not.toHaveBeenCalled();
   });
 });
 

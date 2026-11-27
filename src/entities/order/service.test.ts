@@ -65,7 +65,7 @@ describe("orderService.create", () => {
     const [, ordersInit] = calls().find(([p]) => p === "/api/orders")!;
     expect(ordersInit?.body).toEqual({ address_id: "addr-1", cart_item_ids: ["ci-new"] });
     expect(ordersInit?.headers?.["Idempotency-Key"]).toEqual(expect.any(String));
-    expect(order).toEqual({ id: "o-1", status: "pending", total: 150000, payment_method: "cod", checkout_url: null });
+    expect(order).toEqual({ id: "o-1", status: "pending", total: 150000, payment_method: "cod", payment_id: "pay-1", checkout_url: null });
   });
 
   it("không gửi giá, phí ship hay tổng tiền lên backend", async () => {
@@ -115,6 +115,11 @@ describe("orderService.create", () => {
     expect(order.checkout_url).toBe("https://pay.payos.vn/abc");
   });
 
+  it("trả id giao dịch vừa tạo để web nhớ mà hỏi trạng thái sau này", async () => {
+    backend({ "POST /api/payments": { id: "pay-9", payment_url: "https://pay.payos.vn/abc" } });
+    expect((await orderService.create({ ...input, payment_method: "payos" })).payment_id).toBe("pay-9");
+  });
+
   it("COD: không bao giờ có checkout_url", async () => {
     backend({ "POST /api/payments": { id: "pay-1", payment_url: "https://x" } });
     expect((await orderService.create(input)).checkout_url).toBeNull();
@@ -123,13 +128,17 @@ describe("orderService.create", () => {
   it("202 (đơn còn processing): không tạo thanh toán", async () => {
     backend({ "POST /api/orders": { id: "o-1", status: "processing" } });
     const order = await orderService.create(input);
-    expect(order).toMatchObject({ status: "processing", total: 0 });
+    expect(order).toMatchObject({ status: "processing", total: 0, payment_id: null });
     expect(pathsOf("POST")).not.toContain("/api/payments");
   });
 
   it("tạo thanh toán lỗi thì đơn vẫn được trả về, không ném lỗi", async () => {
     backend({ "POST /api/payments": new ApiError(503, "PayOS lỗi", "NT-PAY-1006") });
-    expect(await orderService.create({ ...input, payment_method: "payos" })).toMatchObject({ id: "o-1", checkout_url: null });
+    expect(await orderService.create({ ...input, payment_method: "payos" })).toMatchObject({
+      id: "o-1",
+      payment_id: null,
+      checkout_url: null,
+    });
   });
 
   it("lỗi backend khi đặt đơn được ném lên cho action xử lý", async () => {
