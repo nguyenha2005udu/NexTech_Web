@@ -15,7 +15,7 @@ describe("adminNextStatuses", () => {
     expect(adminNextStatuses("paid", null)).toEqual(["shipped", "cancelled"]);
   });
 
-  it.each(["shipped", "cancelled", "processing", "failed", "simulated_success"] as const)(
+  it.each(["shipped", "cancelled", "processing", "failed"] as const)(
     "%s → không còn bước nào",
     (status) => {
       expect(adminNextStatuses(status, "cod")).toEqual([]);

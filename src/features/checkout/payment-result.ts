@@ -10,7 +10,7 @@ export function paymentResultOf(order: Pick<MyOrderSummary, "status" | "payment_
   // Đơn chưa qua saga (giữ kho, dùng mã): chưa nói được COD "đã đặt" hay PayOS "đang xác nhận".
   if (order.status === "processing") return "processing";
   if (order.payment_method === "cod") return "cod_placed";
-  if (order.payment_status === "success" || order.status === "paid" || order.status === "simulated_success") {
+  if (order.payment_status === "success" || order.status === "paid") {
     return "paid";
   }
   return "pending";

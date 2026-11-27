@@ -1,7 +1,7 @@
 import { canReview } from "./review.rules";
 
 describe("canReview", () => {
-  it.each(["paid", "shipped", "simulated_success"] as const)("đơn %s thì được đánh giá", (status) => {
+  it.each(["paid", "shipped"] as const)("đơn %s thì được đánh giá", (status) => {
     expect(canReview({ status })).toBe(true);
   });
 

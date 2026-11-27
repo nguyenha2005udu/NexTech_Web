@@ -57,7 +57,6 @@ export function orderTimeline(
     case "pending":
       return { current: 0, status: "process", titles };
     case "paid":
-    case "simulated_success":
       return { current: 1, status: "finish", titles };
     case "shipped":
       if (payment?.method === "cod") titles[1] = "Đã thu tiền";

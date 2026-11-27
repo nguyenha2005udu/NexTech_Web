@@ -17,7 +17,6 @@ export const ORDER_STATUS_META: Record<OrderStatus, OrderStatusMeta> = {
   cancelled: { label: "Đã huỷ", color: "red", barColor: "#f5222d" },
   processing: { label: "Đang tạo đơn", color: "default", barColor: "#8c8c8c" },
   failed: { label: "Thất bại", color: "default", barColor: "#595959" },
-  simulated_success: { label: "Đã thanh toán (giả lập)", color: "blue", barColor: "#69b1ff" },
 };
 
 /** 4 trạng thái chính luôn hiện ở dashboard, kể cả khi bằng 0. */

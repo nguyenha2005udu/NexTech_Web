@@ -22,7 +22,6 @@ describe("paymentResultOf", () => {
   it.each([
     ["giao dịch thành công", { payment_status: "success" as const }],
     ["đơn đã thanh toán", { status: "paid" as const, payment_status: null }],
-    ["thanh toán giả lập", { status: "simulated_success" as const }],
   ])("PayOS %s → 'Thanh toán thành công' (03.09)", (_label, override) => {
     expect(paymentResultOf(order(override))).toBe("paid");
   });

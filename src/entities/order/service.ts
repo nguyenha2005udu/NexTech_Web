@@ -68,7 +68,7 @@ const LIST_LIMIT = 100;
 
 /** Backend không trả trạng thái thanh toán ở API đơn: suy ra từ trạng thái đơn. */
 export function paymentStatusOf(status: OrderStatus): PaymentStatus {
-  if (status === "paid" || status === "shipped" || status === "simulated_success") return "success";
+  if (status === "paid" || status === "shipped") return "success";
   if (status === "cancelled" || status === "failed") return "failed";
   return "pending";
 }
