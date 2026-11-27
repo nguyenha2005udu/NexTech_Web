@@ -155,6 +155,12 @@ describe("loadPaymentResult — trạng thái thanh toán thật", () => {
     expect(mockStatus).not.toHaveBeenCalled();
   });
 
+  it("hỏi trạng thái giao dịch không được (service trả null) thì vẫn hiện đơn, không lỗi trang", async () => {
+    mockContext.mockResolvedValue(payosContext);
+    mockStatus.mockResolvedValue(null);
+    expect(await loadPaymentResult({ orderCode: "1" })).toMatchObject({ order: { id: ORDER_ID, payment_status: "pending" } });
+  });
+
   it("lỗi backend không lường trước được ném lên (không nuốt)", async () => {
     mockContext.mockResolvedValue(payosContext);
     mockStatus.mockRejectedValue(new Error("boom"));
