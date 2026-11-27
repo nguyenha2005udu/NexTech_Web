@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ClockIcon, MessageIcon, PlusIcon } from "@/components/ui/icons";
+import { ClockIcon, MessageIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import type { Conversation } from "@/entities/conversation";
+import { NewChatLink } from "./NewChatLink";
 import styles from "./Assistant.module.css";
 
 type Props =
@@ -12,9 +13,7 @@ type Props =
 export function AssistantSidebar(props: Props) {
   return (
     <aside className={styles.sidebar} aria-label="Hội thoại">
-      <Link href={routes.assistant} className={styles.newChat}>
-        <PlusIcon size={16} /> Hội thoại mới
-      </Link>
+      <NewChatLink />
 
       {props.variant === "guest" ? (
         <>
@@ -23,7 +22,7 @@ export function AssistantSidebar(props: Props) {
           </Link>
           <p className={styles.guestNote}>
             Bạn đang chat với tư cách khách, hội thoại chỉ lưu trong phiên này.{" "}
-            <Link href={routes.login}>Đăng nhập</Link> để lưu lại.
+            <Link href={routes.loginWithCallback(routes.assistant)}>Đăng nhập</Link> để lưu lại.
           </p>
         </>
       ) : (

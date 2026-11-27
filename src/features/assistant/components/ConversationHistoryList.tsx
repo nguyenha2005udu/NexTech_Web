@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRightIcon, ClockIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import type { Conversation } from "@/entities/conversation";
+import { formatDate } from "@/lib/format";
 import styles from "./Assistant.module.css";
 
 // FDD 3.4 — Danh sách lịch sử hội thoại (Figma 02.04).
@@ -26,7 +27,9 @@ export function ConversationHistoryList({ conversations }: { conversations: Conv
             <li key={c.id} className={styles.historyItem}>
               <div>
                 <p className={styles.historyTitle}>{c.title}</p>
-                <p className={styles.historyTime}>{c.updatedLabel}</p>
+                <p className={styles.historyTime}>
+                  <time dateTime={c.startedAt}>{formatDate(c.startedAt)}</time>
+                </p>
               </div>
               <Link href={routes.assistantConversation(c.id)} className={styles.ghostBtn} style={{ marginTop: 0 }}>
                 <ArrowRightIcon size={14} /> Mở hội thoại
