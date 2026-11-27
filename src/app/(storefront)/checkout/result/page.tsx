@@ -20,8 +20,8 @@ export default async function Page({ searchParams }: Props) {
 
   // `orderCode` do PayOS gắn là mã số của PayOS, không phải id đơn — loadPaymentResult xử lý (đơn/giao dịch lấy từ cookie).
   const sp = await searchParams;
-  const order = await loadPaymentResult({ orderCode: first(sp.orderCode), method: first(sp.method) });
-  if (!order) notFound();
+  const result = await loadPaymentResult({ orderCode: first(sp.orderCode), method: first(sp.method) });
+  if (!result) notFound();
 
-  return <PaymentResult order={order} />;
+  return <PaymentResult order={result.order} needsPayment={result.needsPayment} />;
 }

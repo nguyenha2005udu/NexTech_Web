@@ -10,7 +10,7 @@ describe("canCancel", () => {
     expect(canCancel({ status: "pending", payment_status: "success" })).toBe(false);
   });
 
-  it.each(["paid", "shipped", "cancelled", "failed", "processing", "simulated_success"] as const)(
+  it.each(["paid", "shipped", "cancelled", "failed", "processing"] as const)(
     "không huỷ được đơn ở trạng thái %s",
     (status) => {
       expect(canCancel({ status, payment_status: null })).toBe(false);

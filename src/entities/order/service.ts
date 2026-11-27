@@ -68,7 +68,7 @@ const LIST_LIMIT = 100;
 
 /** Backend không trả trạng thái thanh toán ở API đơn: suy ra từ trạng thái đơn. */
 export function paymentStatusOf(status: OrderStatus): PaymentStatus {
-  if (status === "paid" || status === "shipped" || status === "simulated_success") return "success";
+  if (status === "paid" || status === "shipped") return "success";
   if (status === "cancelled" || status === "failed") return "failed";
   return "pending";
 }
@@ -169,10 +169,14 @@ export const orderService = {
     };
   },
 
-  /** Tạo link thanh toán PayOS mới cho đơn chưa trả tiền (FDD 5.1.2 "Thử lại"). Backend chỉ cho khi đơn còn `pending`. */
-  async retryPayment(id: string): Promise<{ checkout_url: string | null }> {
-    const payment = await requestPayment(id, "payos");
-    return { checkout_url: payment.payment_url };
+  /**
+   * Tạo giao dịch cho đơn đã `pending` (FDD 5.1.2). Dùng khi đơn đặt lúc backend trả 202 `processing` (lúc đó chưa tạo được),
+   * và để thanh toán lại PayOS: giao dịch `failed` được backend dùng lại với mã PayOS mới (BR-08, cùng id giao dịch).
+   * Backend: 400 nếu đơn không còn `pending`, 409 `NT-PAY-1003` nếu đã có giao dịch chưa `failed`.
+   */
+  async createPayment(id: string, method: CreateOrderInput["payment_method"]): Promise<{ id: string; checkout_url: string | null }> {
+    const payment = await requestPayment(id, method);
+    return { id: payment.id, checkout_url: method === "payos" ? payment.payment_url : null };
   },
 
   /**

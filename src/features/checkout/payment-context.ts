@@ -44,3 +44,12 @@ export async function readPaymentContext(): Promise<PaymentContext | null> {
     return null;
   }
 }
+
+/**
+ * Phương thức thanh toán của đơn, để hiện ở chi tiết đơn: API đơn của backend không trả phương thức (chỉ có ở bản ghi
+ * thanh toán). Chỉ biết khi cookie lúc đặt hàng còn và đúng đơn này; không thì `null` (ẩn dòng, không đoán).
+ */
+export async function paymentMethodOf(orderId: string): Promise<PaymentContext["method"] | null> {
+  const context = await readPaymentContext();
+  return context?.orderId === orderId ? context.method : null;
+}

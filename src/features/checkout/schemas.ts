@@ -29,3 +29,5 @@ export const placeOrderSchema = z.object({
 export type PlaceOrderInput = z.input<typeof placeOrderSchema>;
 
 export const retryPaymentSchema = z.object({ orderId: z.string().min(1).max(64) });
+
+export const startPaymentSchema = z.object({ orderId: z.string().min(1).max(64) });

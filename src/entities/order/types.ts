@@ -1,8 +1,7 @@
-// Đơn hàng — design/admin/04 §4. Enum `status` lệch giữa `be/` và order-service nên khai báo đủ cả hai
-// (order-service 2026-11-20 đã bỏ `simulated_success`, chỉ còn 6 giá trị đầu).
+// Đơn hàng — design/admin/04 §4. 6 giá trị `status` của order-service (đã bỏ `simulated_success` của `be/` cũ).
 import type { PaymentMethod, PaymentStatus } from "@/entities/transaction";
 
-export type OrderStatus = "processing" | "pending" | "paid" | "shipped" | "cancelled" | "failed" | "simulated_success";
+export type OrderStatus = "processing" | "pending" | "paid" | "shipped" | "cancelled" | "failed";
 
 /** Một dòng của `GET /api/admin/orders` (tiền đã đổi sang number ở service). */
 export interface AdminOrderListItem {

@@ -1,6 +1,6 @@
 "use client";
 
-// FDD 5.1.2 — "Thử lại" ở trang kết quả (Figma 03.11): xin link PayOS mới rồi chuyển sang PayOS.
+// FDD 5.1.2 — "Thanh toán lại" ở trang kết quả (Figma 03.11): xin link PayOS mới rồi chuyển sang PayOS.
 import { useTransition } from "react";
 import { App, Button } from "antd";
 import { retryPayment } from "../actions";
@@ -20,7 +20,7 @@ export function RetryPaymentButton({ orderId }: { orderId: string }) {
         })
       }
     >
-      Thử lại
+      Thanh toán lại
     </Button>
   );
 }

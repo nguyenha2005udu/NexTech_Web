@@ -6,7 +6,13 @@ jest.mock("next/headers", () => ({
   cookies: async () => ({ set, get: (name: string) => (store.has(name) ? { value: store.get(name) } : undefined) }),
 }));
 
-import { PAYMENT_CONTEXT_COOKIE, PAYMENT_CONTEXT_MAX_AGE_SECONDS, readPaymentContext, writePaymentContext } from "./payment-context";
+import {
+  PAYMENT_CONTEXT_COOKIE,
+  PAYMENT_CONTEXT_MAX_AGE_SECONDS,
+  paymentMethodOf,
+  readPaymentContext,
+  writePaymentContext,
+} from "./payment-context";
 
 const ctx = { orderId: "aaaaaaaa-0000-4000-8000-000000000001", paymentId: "pay-1", method: "payos" as const };
 
@@ -49,5 +55,23 @@ describe("readPaymentContext", () => {
   ])("cookie bị sửa (%s) thì trả null, không ném lỗi", async (_label, raw) => {
     store.set(PAYMENT_CONTEXT_COOKIE, raw);
     expect(await readPaymentContext()).toBeNull();
+  });
+});
+
+describe("paymentMethodOf", () => {
+  it("đúng đơn trong cookie thì trả phương thức", async () => {
+    await writePaymentContext(ctx);
+    expect(await paymentMethodOf(ctx.orderId)).toBe("payos");
+    await writePaymentContext({ ...ctx, method: "cod" });
+    expect(await paymentMethodOf(ctx.orderId)).toBe("cod");
+  });
+
+  it("cookie của đơn khác, hết hạn hoặc bị sửa thì null (không đoán)", async () => {
+    await writePaymentContext(ctx);
+    expect(await paymentMethodOf("bbbbbbbb-0000-4000-8000-000000000002")).toBeNull();
+    store.set(PAYMENT_CONTEXT_COOKIE, "{{{");
+    expect(await paymentMethodOf(ctx.orderId)).toBeNull();
+    store.clear();
+    expect(await paymentMethodOf(ctx.orderId)).toBeNull();
   });
 });
