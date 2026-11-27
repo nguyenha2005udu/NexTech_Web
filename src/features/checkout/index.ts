@@ -9,3 +9,4 @@ export { parseBuyNowParams, toBuyNowLine } from "./buy-now";
 export { canRetryPayment, paymentResultOf, type PaymentResultKind } from "./payment-result";
 export { PaymentResult } from "./components/PaymentResult";
 export { loadPaymentResult, type PaymentResultData, type PaymentResultParams } from "./load-payment-result";
+export { paymentMethodOf } from "./payment-context";

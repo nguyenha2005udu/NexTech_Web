@@ -1,9 +1,10 @@
 // FDD 5.2.3 + 5.2.4 + 5.2.5 — Chi tiết đơn, viết đánh giá, huỷ đơn. SSR; đơn của người khác → 404 (mục 10.3 lớp 2).
-// Ghép feature: orders (chi tiết) + reviews (nút "Viết đánh giá" cho từng sản phẩm đủ điều kiện).
+// Ghép feature: orders (chi tiết) + reviews (nút "Viết đánh giá" cho từng sản phẩm đủ điều kiện) + checkout (phương thức thanh toán đã nhớ).
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { orderService } from "@/entities/order/service";
 import { reviewService } from "@/entities/review/service";
+import { paymentMethodOf } from "@/features/checkout";
 import { OrderDetail } from "@/features/orders";
 import { ReviewButton, canReview } from "@/features/reviews";
 import { requirePermission } from "@/lib/auth/guards";
@@ -32,5 +33,8 @@ export default async function Page({ params }: Props) {
       );
     }
   }
-  return <OrderDetail order={order} itemActions={itemActions} />;
+
+  // Backend không trả phương thức ở API đơn: chỉ hiện khi cookie lúc đặt hàng còn và đúng đơn này (FDD 5.2.3).
+  const paymentMethod = await paymentMethodOf(order.id);
+  return <OrderDetail order={{ ...order, payment_method: paymentMethod }} itemActions={itemActions} />;
 }
