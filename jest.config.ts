@@ -65,6 +65,9 @@ const config: Config = {
     "./src/features/admin/transactions/": MODULE_THRESHOLD,
     "./src/entities/transaction/admin-service.ts": MODULE_THRESHOLD,
     "./src/entities/transaction/status.ts": MODULE_THRESHOLD,
+    "./src/features/admin/users/": MODULE_THRESHOLD,
+    "./src/entities/user/admin-service.ts": MODULE_THRESHOLD,
+    "./src/entities/user/status.ts": MODULE_THRESHOLD,
     "./src/lib/api/query-string.ts": MODULE_THRESHOLD,
   },
 };

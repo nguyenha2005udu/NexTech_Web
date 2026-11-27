@@ -64,3 +64,8 @@ export function formatOrderCode(uuid: string): string {
 export function formatPaymentCode(uuid: string): string {
   return `PAY-${shortId(uuid)}`;
 }
+
+/** "a1b2c3d4-…" → "#A1B2C3D4" (mã người dùng, design/admin/07 §2.2) */
+export function formatUserCode(uuid: string): string {
+  return `#${shortId(uuid)}`;
+}
