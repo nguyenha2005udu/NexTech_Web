@@ -1,63 +1,85 @@
 /** @jest-environment node */
+jest.mock("server-only", () => ({}));
+jest.mock("@/lib/api/http", () => {
+  class ApiError extends Error {
+    constructor(
+      readonly status: number,
+      message: string,
+      readonly code?: string,
+    ) {
+      super(message);
+    }
+  }
+  return { ApiError, apiFetch: jest.fn() };
+});
+
+import { ApiError, apiFetch } from "@/lib/api/http";
 import { notificationService } from "./service";
 
-const sample = { type: "order" as const, title: "Đặt hàng thành công", body: "Đơn #A1", link: "/account/orders/a1" };
+const fetchMock = jest.mocked(apiFetch);
 
-describe("notificationService (mock)", () => {
-  it("push tạo thông báo chưa đọc, giữ link", async () => {
-    const n = await notificationService.push(sample);
-    expect(n).toMatchObject({ ...sample, is_read: false });
-    expect(n.id).toMatch(/^[0-9a-f-]{36}$/);
+const raw = (over: Record<string, unknown> = {}) => ({
+  id: "n-1",
+  type: "order_update",
+  title: "Đặt hàng thành công",
+  body: "Đơn hàng #A1B2C3D4 đã được tạo.",
+  data: { order_id: "o-1" },
+  is_read: false,
+  created_at: "2026-11-24T03:00:00.000Z",
+  ...over,
+});
+
+function backend(items: unknown[], unread: number, total = items.length) {
+  fetchMock.mockImplementation(async (path: string) => {
+    if (path === "/api/notifications/unread-count") return { count: unread };
+    return { items, total, page: 2, limit: 10, totalPages: 1 };
+  });
+}
+
+afterEach(() => jest.resetAllMocks());
+
+describe("notificationService.list", () => {
+  it("gọi đúng trang + số chưa đọc của toàn bộ, không gửi userId", async () => {
+    backend([raw()], 7, 12);
+    const list = await notificationService.list(2, 10);
+    expect(fetchMock).toHaveBeenCalledWith("/api/notifications?page=2&limit=10");
+    expect(fetchMock).toHaveBeenCalledWith("/api/notifications/unread-count");
+    expect(list).toMatchObject({ unread: 7, page: 2, total: 12 });
   });
 
-  it("thông báo không có link thì link là null", async () => {
-    expect((await notificationService.push({ type: "payment", title: "t", body: "b" })).link).toBeNull();
-  });
-
-  it("list mới nhất trước và đếm số chưa đọc", async () => {
-    jest.useFakeTimers({ now: new Date("2026-11-24T03:00:00Z") });
-    const older = await notificationService.push(sample);
-    jest.setSystemTime(new Date("2026-11-24T04:00:00Z"));
-    const newer = await notificationService.push(sample);
-    jest.useRealTimers();
-    const { items, unread } = await notificationService.list();
-    expect(items.findIndex((n) => n.id === newer.id)).toBeLessThan(items.findIndex((n) => n.id === older.id));
-    expect(unread).toBe(items.filter((n) => !n.is_read).length);
-  });
-
-  it("markRead theo id chỉ đổi đúng thông báo đó", async () => {
-    const a = await notificationService.push(sample);
-    const b = await notificationService.push(sample);
-    await notificationService.markRead([a.id]);
+  it("đơn hàng dẫn tới chi tiết đơn, theo dõi giá dẫn tới trang sản phẩm, còn lại không có link", async () => {
+    backend(
+      [
+        raw(),
+        raw({ id: "n-2", type: "price_alert", data: { product_id: "p-1", alert_id: "a-1" } }),
+        raw({ id: "n-3", type: "system", data: null, body: null }),
+      ],
+      3,
+    );
     const { items } = await notificationService.list();
-    expect(items.find((n) => n.id === a.id)?.is_read).toBe(true);
-    expect(items.find((n) => n.id === b.id)?.is_read).toBe(false);
+    expect(items.map((n) => n.link)).toEqual(["/account/orders/o-1", "/products/p-1", null]);
+    expect(items[2]?.body).toBe("");
   });
+});
 
-  it("markRead không có ids thì đọc hết", async () => {
-    await notificationService.push(sample);
+describe("notificationService.markRead", () => {
+  it("không có ids thì đọc hết bằng read-all", async () => {
+    fetchMock.mockResolvedValue({ updated: 3 });
     await notificationService.markRead();
-    expect((await notificationService.list()).unread).toBe(0);
+    expect(fetchMock).toHaveBeenCalledWith("/api/notifications/read-all", { method: "PUT" });
   });
 
-  it("markRead với id lạ không lỗi", async () => {
-    await expect(notificationService.markRead(["khong-co"])).resolves.toBeUndefined();
+  it("có ids thì đánh dấu từng cái, bỏ qua id không tồn tại (404)", async () => {
+    fetchMock.mockImplementation(async (path: string) => {
+      if (path.includes("gone")) throw new ApiError(404, "Không tìm thấy thông báo", "NT-NTF-1001");
+      return { is_read: true };
+    });
+    await expect(notificationService.markRead(["n-1", "gone"])).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledWith("/api/notifications/n-1/read", { method: "PUT" });
   });
 
-  it("list phân trang: total/unread tính trên toàn bộ, items chỉ một trang", async () => {
-    const all = await notificationService.list(1, 1000);
-    const page1 = await notificationService.list(1, 2);
-    const page2 = await notificationService.list(2, 2);
-    expect(page1.items).toHaveLength(2);
-    expect(page1.total).toBe(all.total);
-    expect(page1.unread).toBe(all.unread);
-    expect(page2.items.map((n) => n.id)).toEqual(all.items.slice(2, 4).map((n) => n.id));
-    expect(page2.page).toBe(2);
-  });
-
-  it("trang vượt quá giới hạn trả danh sách rỗng nhưng vẫn có total", async () => {
-    const { items, total } = await notificationService.list(9999, 10);
-    expect(items).toEqual([]);
-    expect(total).toBeGreaterThan(0);
+  it("lỗi khác 404 thì ném tiếp", async () => {
+    fetchMock.mockRejectedValue(new ApiError(503, "Không kết nối được máy chủ"));
+    await expect(notificationService.markRead(["n-1"])).rejects.toMatchObject({ status: 503 });
   });
 });

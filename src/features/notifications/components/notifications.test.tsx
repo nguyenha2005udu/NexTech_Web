@@ -9,7 +9,7 @@ jest.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
 const note = (override: Partial<Notification> = {}): Notification => ({
   id: "n-1",
-  type: "order",
+  type: "order_update",
   title: "Đặt hàng thành công",
   body: "Đơn #A1B2C3D4 đang chờ xử lý.",
   link: "/account/orders/o-1",
@@ -37,7 +37,7 @@ function respond(body: unknown, status = 200) {
 const isMarkRead = (input: unknown) => String((input as Request).url).endsWith("/notifications/read");
 
 beforeEach(() => {
-  server = page([note(), note({ id: "n-2", title: "Thanh toán thành công", type: "payment", is_read: true, link: null })], 1);
+  server = page([note(), note({ id: "n-2", title: "Giá đã giảm", type: "price_alert", is_read: true, link: null })], 1);
   fetchMock = jest.fn(async (input: Request) => {
     if (isMarkRead(input)) {
       const body = JSON.parse((await input.text()) || "{}") as { ids?: string[] };
@@ -154,7 +154,7 @@ describe("NotificationList", () => {
     renderWithProviders(<NotificationList initial={server} pageSize={10} />);
     expect(screen.getByText("Đặt hàng thành công")).toBeInTheDocument();
     expect(screen.getByText("Đơn hàng")).toBeInTheDocument();
-    expect(screen.getByText("Thanh toán")).toBeInTheDocument();
+    expect(screen.getByText("Giá sản phẩm")).toBeInTheDocument();
     expect(screen.getByText("1 thông báo chưa đọc")).toBeInTheDocument();
   });
 
