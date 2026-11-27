@@ -3,7 +3,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { orderService } from "@/entities/order/service";
-import { reviewService } from "@/entities/review/service";
 import { paymentMethodOf } from "@/features/checkout";
 import { OrderDetail } from "@/features/orders";
 import { ReviewButton, canReview } from "@/features/reviews";
@@ -22,13 +21,12 @@ export default async function Page({ params }: Props) {
   const order = await orderService.getDetailMine(orderId);
   if (!order) notFound();
 
+  // Backend chưa có API cho biết sản phẩm nào đã được đánh giá: nút luôn hiện, gửi trùng thì backend báo
+  // "Bạn đã đánh giá sản phẩm này rồi" ngay trong hộp thoại.
   const itemActions: Record<string, React.ReactNode> = {};
   if (canReview(order)) {
-    const reviewed = new Set(await reviewService.reviewedProductIds(order.id));
     for (const item of order.items) {
-      itemActions[item.product_id] = reviewed.has(item.product_id) ? (
-        <span>Đã đánh giá</span>
-      ) : (
+      itemActions[item.product_id] = (
         <ReviewButton orderId={order.id} productId={item.product_id} productName={item.name} />
       );
     }

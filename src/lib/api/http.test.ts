@@ -62,6 +62,24 @@ describe("apiFetch", () => {
     fetchMock.mockRejectedValue(new TypeError("fetch failed"));
     await expect(apiFetch("/api/admin/orders")).rejects.toMatchObject({ status: 503 });
   });
+
+  it("chuyển cookie guest_id của trợ lý AI đi và ghi lại cookie gateway trả về, bỏ cookie lạ", async () => {
+    const guestId = "8f0e3c1a-0000-4000-8000-000000000001";
+    const original = cookieStore.get.getMockImplementation();
+    cookieStore.get.mockImplementation((name: string) => (name === "guest_id" ? { value: guestId } : undefined));
+    const headers = new Headers({ "Content-Type": "application/json" });
+    headers.append("Set-Cookie", `guest_id=${guestId}; Max-Age=31536000; Path=/; HttpOnly; SameSite=Lax`);
+    headers.append("Set-Cookie", "tracker=x; Path=/");
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ id: "c-1" }), { status: 201, headers }));
+
+    await apiFetch("/api/conversations", { method: "POST", body: {} });
+    cookieStore.get.mockImplementation(original);
+
+    const [, init] = fetchMock.mock.calls[0]!;
+    expect(init.headers).toMatchObject({ Cookie: `guest_id=${guestId}` });
+    expect(cookieStore.set).toHaveBeenCalledTimes(1);
+    expect(cookieStore.set).toHaveBeenCalledWith("guest_id", guestId, expect.objectContaining({ httpOnly: true }));
+  });
 });
 
 describe("apiFetchForm", () => {

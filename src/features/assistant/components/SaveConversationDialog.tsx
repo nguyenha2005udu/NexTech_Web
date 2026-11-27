@@ -8,11 +8,13 @@ import styles from "./Assistant.module.css";
 export function SaveConversationDialog({
   open,
   title,
+  saving = false,
   onSave,
   onSkip,
 }: {
   open: boolean;
   title: string;
+  saving?: boolean;
   onSave: () => void;
   onSkip: () => void;
 }) {
@@ -33,7 +35,7 @@ export function SaveConversationDialog({
         <button type="button" className={styles.outlineBtn} onClick={onSkip}>
           Để sau
         </button>
-        <button type="button" className={styles.primaryBtn} onClick={onSave}>
+        <button type="button" className={styles.primaryBtn} onClick={onSave} disabled={saving} aria-busy={saving}>
           <CheckIcon size={16} /> Lưu hội thoại
         </button>
       </div>

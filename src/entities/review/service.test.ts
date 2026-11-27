@@ -1,76 +1,59 @@
 /** @jest-environment node */
-import { mockReviewsFor } from "./mock-data";
+jest.mock("server-only", () => ({}));
+jest.mock("@/lib/api/http", () => ({ apiFetch: jest.fn(), apiFetchPublic: jest.fn() }));
+
+import { apiFetch, apiFetchPublic } from "@/lib/api/http";
 import { reviewService } from "./service";
 
-describe("reviewService.listByProduct", () => {
-  it("mặc định trả tối đa 3 đánh giá của đúng sản phẩm", async () => {
-    const reviews = await reviewService.listByProduct("p-1");
-    expect(reviews).toHaveLength(3);
-    expect(reviews.every((r) => r.productId === "p-1")).toBe(true);
-  });
+const fetchMock = jest.mocked(apiFetch);
+const publicMock = jest.mocked(apiFetchPublic);
+const PRODUCT = "6f1c2d3e-4b5a-4c6d-8e7f-0a1b2c3d4e5f";
 
-  it("tôn trọng giới hạn truyền vào", async () => {
-    expect(await reviewService.listByProduct("p-1", 1)).toHaveLength(1);
-  });
-
-  it("giới hạn lớn hơn dữ liệu thì trả hết", async () => {
-    expect(await reviewService.listByProduct("p-1", 50)).toHaveLength(mockReviewsFor("p-1").length);
-  });
+const raw = (over: Record<string, unknown> = {}) => ({
+  id: "r-1",
+  user_name: "Nguyễn An",
+  avatar_url: null,
+  rating: "4.0",
+  title: null,
+  content: "Máy chạy mượt.",
+  created_at: "2026-11-01T09:00:00.000Z",
+  ...over,
 });
 
-describe("mockReviewsFor", () => {
-  it("id đánh giá khác nhau giữa các sản phẩm", () => {
-    const a = mockReviewsFor("p-a").map((r) => r.id);
-    const b = mockReviewsFor("p-b").map((r) => r.id);
-    expect(a.filter((id) => b.includes(id))).toEqual([]);
-  });
-
-  it("điểm nằm trong 1–5 và ngày là ISO 8601", () => {
-    for (const r of mockReviewsFor("p-1")) {
-      expect(r.rating).toBeGreaterThanOrEqual(1);
-      expect(r.rating).toBeLessThanOrEqual(5);
-      expect(new Date(r.createdAt).toISOString()).toBe(r.createdAt);
-    }
-  });
-});
+afterEach(() => jest.resetAllMocks());
 
 describe("reviewService.listPage", () => {
-  it("chia trang đánh giá mẫu, total là tổng của sản phẩm", async () => {
-    const total = mockReviewsFor("p-page").length;
-    const first = await reviewService.listPage("p-page", 1, 3);
-    const second = await reviewService.listPage("p-page", 2, 3);
-    expect(first).toMatchObject({ page: 1, total });
-    expect(first.items).toHaveLength(3);
-    expect(second.items[0]?.id).not.toBe(first.items[0]?.id);
+  it("gọi API công khai theo trang, có cache, đổi điểm về số", async () => {
+    publicMock.mockResolvedValue({ items: [raw()], total: 7, page: 2, limit: 3, totalPages: 3 });
+    const page = await reviewService.listPage(PRODUCT, 2, 3);
+    expect(publicMock).toHaveBeenCalledWith(`/api/products/${PRODUCT}/reviews?page=2&limit=3`, 60);
+    expect(page).toEqual({
+      items: [{ id: "r-1", productId: PRODUCT, authorLabel: "Nguyễn An", rating: 4, content: "Máy chạy mượt.", createdAt: "2026-11-01T09:00:00.000Z" }],
+      page: 2,
+      total: 7,
+    });
   });
 
-  it("trang quá giới hạn trả rỗng nhưng vẫn có total", async () => {
-    const result = await reviewService.listPage("p-page", 99, 3);
-    expect(result.items).toEqual([]);
-    expect(result.total).toBeGreaterThan(0);
+  it("không có tên thì 'Ẩn danh'; không có nội dung thì dùng tiêu đề", async () => {
+    publicMock.mockResolvedValue({ items: [raw({ user_name: null, content: null, title: "Tốt" })], total: 1, page: 1 });
+    const { items } = await reviewService.listPage(PRODUCT, 1, 3);
+    expect(items[0]).toMatchObject({ authorLabel: "Ẩn danh", content: "Tốt" });
+  });
+
+  it("id sản phẩm không phải UUID thì trả rỗng, không gọi backend", async () => {
+    expect(await reviewService.listPage("asus-vivobook-15", 1, 3)).toEqual({ items: [], page: 1, total: 0 });
+    expect(publicMock).not.toHaveBeenCalled();
   });
 });
 
 describe("reviewService.create", () => {
-  const input = { orderId: "o-1", productId: "p-new", rating: 5, content: "Dùng rất tốt, đáng tiền." };
-
-  it("đánh giá mới lên đầu danh sách, tác giả được ẩn danh", async () => {
-    const review = await reviewService.create(input);
-    expect(review).toMatchObject({ productId: "p-new", rating: 5, authorLabel: "Người mua đã xác minh" });
-    expect(review).not.toHaveProperty("orderId");
-    expect((await reviewService.listByProduct("p-new"))[0]?.id).toBe(review.id);
-  });
-
-  it("total tăng thêm 1 sau khi viết", async () => {
-    const before = (await reviewService.listPage("p-total", 1, 1)).total;
-    await reviewService.create({ ...input, productId: "p-total" });
-    expect((await reviewService.listPage("p-total", 1, 1)).total).toBe(before + 1);
-  });
-
-  it("reviewedProductIds chỉ trả sản phẩm đã đánh giá trong đúng đơn đó", async () => {
-    await reviewService.create({ ...input, orderId: "o-ids", productId: "p-a" });
-    await reviewService.create({ ...input, orderId: "o-other", productId: "p-b" });
-    expect(await reviewService.reviewedProductIds("o-ids")).toEqual(["p-a"]);
-    expect(await reviewService.reviewedProductIds("o-none")).toEqual([]);
+  it("gửi số sao + nội dung tới đúng sản phẩm, không gửi userId/orderId", async () => {
+    fetchMock.mockResolvedValue(raw({ id: "r-9", rating: "5", user_name: "Bình" }));
+    const review = await reviewService.create({ productId: PRODUCT, rating: 5, content: "Rất tốt, đáng tiền." });
+    expect(fetchMock).toHaveBeenCalledWith(`/api/products/${PRODUCT}/reviews`, {
+      method: "POST",
+      body: { rating: 5, content: "Rất tốt, đáng tiền." },
+    });
+    expect(review).toMatchObject({ id: "r-9", rating: 5, authorLabel: "Bình" });
   });
 });

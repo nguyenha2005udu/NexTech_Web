@@ -1,56 +1,67 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { routes } from "@/config/routes";
+import { ApiError, apiFetch } from "@/lib/api/http";
 import { NOTIFICATION_PAGE_SIZE, type Notification, type NotificationList, type NotificationType } from "./types";
 
-// FDD 6.2 — Thông báo của CHÍNH người đang đăng nhập (gateway gắn danh tính từ cookie phiên; web không gửi userId).
-// TODO(backend): thay mock bằng notification-service khi chốt hợp đồng:
-//   list     → apiFetch<NotificationList>("/api/notifications?page=&limit=")
-//   markRead → apiFetch("/api/notifications/read", { method: "POST", body: { ids } })  (không có ids = tất cả)
-// Mock giữ trong bộ nhớ tiến trình server; các service khác gọi `push` để sinh thông báo (đơn, thanh toán).
-// Gắn vào globalThis: Route Handler và Server Action được bundle riêng nên mỗi bên có bản module riêng —
-// biến module thường sẽ không thấy thông báo do bên kia tạo. Bỏ khi dùng backend thật.
-const globalStore = globalThis as typeof globalThis & { __nextechNotifications?: Notification[] };
-const store: Notification[] = (globalStore.__nextechNotifications ??= []);
+// FDD 6.2 — Thông báo của CHÍNH người đang đăng nhập, gọi notification-service qua gateway (NT.NOTIFICATION).
+// Gateway gắn danh tính từ cookie phiên; web không gửi userId. Thông báo do backend sinh từ sự kiện đơn hàng,
+// thanh toán và theo dõi giá (job quét giá chạy ở catalog-service).
 
-export interface NewNotification {
+interface RawNotification {
+  id: string;
   type: NotificationType;
   title: string;
-  body: string;
-  link?: string | null;
+  body: string | null;
+  data: { order_id?: string; product_id?: string } | null;
+  is_read: boolean;
+  created_at: string;
 }
+
+interface RawPage {
+  items: RawNotification[];
+  total: number;
+  page: number;
+}
+
+/** Trang đích (6.2.2): đơn hàng → chi tiết đơn, theo dõi giá → trang sản phẩm. */
+function linkOf(data: RawNotification["data"]): string | null {
+  if (data?.order_id) return routes.orderDetail(data.order_id);
+  if (data?.product_id) return routes.product(data.product_id);
+  return null;
+}
+
+const toNotification = (raw: RawNotification): Notification => ({
+  id: raw.id,
+  type: raw.type,
+  title: raw.title,
+  body: raw.body ?? "",
+  link: linkOf(raw.data),
+  is_read: raw.is_read,
+  created_at: raw.created_at,
+});
 
 export const notificationService = {
   /** Mới nhất trước, theo trang (`page` bắt đầu từ 1). `unread` và `total` tính trên toàn bộ. */
   async list(page = 1, pageSize = NOTIFICATION_PAGE_SIZE): Promise<NotificationList> {
-    const all = [...store].sort((a, b) => b.created_at.localeCompare(a.created_at));
-    const start = (page - 1) * pageSize;
-    return {
-      items: all.slice(start, start + pageSize),
-      unread: all.filter((n) => !n.is_read).length,
-      page,
-      total: all.length,
-    };
+    const [list, unread] = await Promise.all([
+      apiFetch<RawPage>(`/api/notifications?page=${page}&limit=${pageSize}`),
+      apiFetch<{ count: number }>("/api/notifications/unread-count"),
+    ]);
+    return { items: list.items.map(toNotification), unread: unread.count, page: list.page, total: list.total };
   },
 
-  /** Tạo thông báo (do backend sinh khi đơn/thanh toán đổi trạng thái; mock gọi trực tiếp). */
-  async push(input: NewNotification): Promise<Notification> {
-    const notification: Notification = {
-      id: randomUUID(),
-      type: input.type,
-      title: input.title,
-      body: input.body,
-      link: input.link ?? null,
-      is_read: false,
-      created_at: new Date().toISOString(),
-    };
-    store.push(notification);
-    return notification;
-  },
-
-  /** Đánh dấu đã đọc (FDD 6.2.2). Không truyền `ids` → tất cả. Id không tồn tại bị bỏ qua. */
+  /** Đánh dấu đã đọc (FDD 6.2.2). Không truyền `ids` → tất cả. Id không tồn tại / của người khác bị bỏ qua. */
   async markRead(ids?: readonly string[]): Promise<void> {
-    for (const n of store) {
-      if (!ids || ids.includes(n.id)) n.is_read = true;
+    if (!ids) {
+      await apiFetch("/api/notifications/read-all", { method: "PUT" });
+      return;
     }
+    await Promise.all(
+      ids.map((id) =>
+        apiFetch(`/api/notifications/${encodeURIComponent(id)}/read`, { method: "PUT" }).catch((err: unknown) => {
+          if (!(err instanceof ApiError && err.status === 404)) throw err;
+        }),
+      ),
+    );
   },
 };

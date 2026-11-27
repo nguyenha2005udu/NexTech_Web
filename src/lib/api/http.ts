@@ -1,9 +1,9 @@
 import "server-only";
 import { cookies } from "next/headers";
-import { SESSION_COOKIES, sessionCookiesFrom } from "./set-cookie";
+import { FORWARDED_COOKIES, forwardedCookiesFrom } from "./set-cookie";
 
 // Gọi backend qua API Gateway từ phía server (Server Component, Server Action, Route Handler).
-// - Gửi kèm cookie phiên của trình duyệt (`access_token`, `refresh_token`).
+// - Gửi kèm cookie phiên của trình duyệt (`access_token`, `refresh_token`) và `guest_id` của trợ lý AI.
 // - Gateway có thể làm mới token và trả Set-Cookie: ghi lại lên domain web. Chỉ ghi được trong
 //   Server Action / Route Handler; ở Server Component thì bỏ qua (proxy.ts đã làm mới trước).
 // - Body thành công không bọc `{ data }` (ADR-0009 của backend). Body lỗi xem `ApiErrorBody`.
@@ -96,7 +96,7 @@ async function send<T>(
   extraHeaders?: Record<string, string>,
 ): Promise<T> {
   const store = await cookies();
-  const cookieHeader = SESSION_COOKIES.flatMap((name) => {
+  const cookieHeader = FORWARDED_COOKIES.flatMap((name) => {
     const value = store.get(name)?.value;
     return value ? [`${name}=${value}`] : [];
   }).join("; ");
@@ -118,7 +118,7 @@ async function send<T>(
     throw new ApiError(503, "Không kết nối được máy chủ, vui lòng thử lại sau");
   }
 
-  for (const c of sessionCookiesFrom(res.headers)) {
+  for (const c of forwardedCookiesFrom(res.headers)) {
     try {
       store.set(c.name, c.value, c.options);
     } catch {

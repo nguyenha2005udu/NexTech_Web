@@ -1,11 +1,10 @@
 import { SparkleSmallIcon } from "@/components/ui/icons";
 import type { ChatMessage } from "@/entities/conversation";
-import type { Product } from "@/entities/product";
 import { SuggestedProductCard } from "./SuggestedProductCard";
 import styles from "./Assistant.module.css";
 
 // Bong bóng tin nhắn: người dùng (phải, nền cam nhạt) / NexTech AI (trái, kèm sản phẩm gợi ý).
-export function MessageBubble({ message, products }: { message: ChatMessage; products: Product[] }) {
+export function MessageBubble({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
     return (
       <div className={styles.userRow}>
@@ -14,9 +13,7 @@ export function MessageBubble({ message, products }: { message: ChatMessage; pro
     );
   }
 
-  const suggested = (message.productSlugs ?? [])
-    .map((slug) => products.find((p) => p.slug === slug))
-    .filter((p): p is Product => p !== undefined);
+  const suggested = message.products ?? [];
 
   return (
     <div className={styles.botBubble}>

@@ -9,4 +9,5 @@ export const createPriceAlertSchema = z.object({
     .max(1_000_000_000, "Giá quá lớn"),
 });
 
-export const removePriceAlertSchema = z.object({ alertId: z.string().min(1).max(64) });
+// Backend không kiểm định dạng id: chặn ở đây để id rác không thành lỗi 500.
+export const removePriceAlertSchema = z.object({ alertId: z.uuid() });

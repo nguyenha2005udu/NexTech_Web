@@ -102,6 +102,10 @@ function fromDetail(raw: RawDetail): Product {
   };
 }
 
+// Trợ lý AI trả sản phẩm gợi ý đúng shape `GET /api/products` (NT.ASSISTANT_CONVERSATION §4): dùng chung bộ đổi.
+export type { RawListItem as RawProductListItem };
+export { fromListItem as productFromListItem };
+
 async function list(query: Record<string, string | number | undefined>): Promise<Paginated<Product>> {
   const page = await apiFetchPublic<Paginated<RawListItem>>(
     `/api/products${toQueryString({ limit: PAGE_LIMIT, ...query })}`,

@@ -1,5 +1,6 @@
 // FDD 6.2 — Thông báo của chính người dùng: đơn hàng, thanh toán, cảnh báo giá (6.1.4).
-export type NotificationType = "order" | "payment" | "price_alert";
+// Loại theo notification-service (NT.NOTIFICATION §1). Thanh toán xong cũng là `order_update`.
+export type NotificationType = "order_update" | "price_alert" | "deal" | "recommendation" | "system";
 
 export interface Notification {
   id: string;

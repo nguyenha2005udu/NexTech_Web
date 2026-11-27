@@ -1,10 +1,9 @@
 // FDD 3.4 — Xem lại một hội thoại (Figma 02.05). SSR: dữ liệu riêng của người dùng.
-// TODO(backend): service phải lọc theo session.user.id khi thay mock bằng API.
+// Backend chỉ trả hội thoại của chính người gọi (BR-14); của người khác / không có → 404.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { routes } from "@/config/routes";
 import { conversationService } from "@/entities/conversation/service";
-import { productService } from "@/entities/product/service";
 import { requirePermission } from "@/lib/auth/guards";
 import { AssistantShell, AssistantSidebar, ChatPanel } from "@/features/assistant";
 
@@ -16,12 +15,11 @@ export const metadata: Metadata = {
 };
 
 export default async function Page({ params }: Props) {
-  await requirePermission("assistant:history");
+  const user = await requirePermission("assistant:history");
   const { conversationId } = await params;
-  const [conversation, conversations, products] = await Promise.all([
+  const [conversation, conversations] = await Promise.all([
     conversationService.getMine(conversationId),
     conversationService.listMine(),
-    productService.listPopular(),
   ]);
   if (!conversation) notFound();
 
@@ -35,12 +33,7 @@ export default async function Page({ params }: Props) {
       ]}
       sidebar={<AssistantSidebar variant="user" conversations={conversations} activeId={conversation.id} />}
     >
-      <ChatPanel
-        variant="user"
-        initialMessages={conversation.messages}
-        products={products}
-        conversationTitle={conversation.title}
-      />
+      <ChatPanel key={conversation.id} userId={user.id} conversation={conversation} />
     </AssistantShell>
   );
 }
