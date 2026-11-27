@@ -3,6 +3,12 @@
 
 export const SESSION_COOKIES = ["access_token", "refresh_token"] as const;
 
+/**
+ * Cookie `apiFetch` chuyển qua lại với gateway: 2 cookie phiên + `guest_id` (assistant-service cấp cho khách
+ * để nhận ra chủ phiên hội thoại, xoá khi gán hội thoại vào tài khoản — NT.ASSISTANT_CONVERSATION §3).
+ */
+export const FORWARDED_COOKIES = [...SESSION_COOKIES, "guest_id"] as const;
+
 export interface ParsedCookie {
   name: string;
   value: string;
@@ -54,10 +60,19 @@ export function parseSetCookie(raw: string): ParsedCookie | null {
   return cookie;
 }
 
-/** Chỉ nhận 2 cookie phiên, bỏ qua cookie khác nếu có. */
-export function sessionCookiesFrom(headers: Headers): ParsedCookie[] {
+function cookiesNamed(headers: Headers, names: readonly string[]): ParsedCookie[] {
   return headers
     .getSetCookie()
     .map(parseSetCookie)
-    .filter((c): c is ParsedCookie => c !== null && (SESSION_COOKIES as readonly string[]).includes(c.name));
+    .filter((c): c is ParsedCookie => c !== null && names.includes(c.name));
+}
+
+/** Chỉ nhận 2 cookie phiên, bỏ qua cookie khác nếu có. */
+export function sessionCookiesFrom(headers: Headers): ParsedCookie[] {
+  return cookiesNamed(headers, SESSION_COOKIES);
+}
+
+/** Cookie phiên + `guest_id` (xem `FORWARDED_COOKIES`). */
+export function forwardedCookiesFrom(headers: Headers): ParsedCookie[] {
+  return cookiesNamed(headers, FORWARDED_COOKIES);
 }
