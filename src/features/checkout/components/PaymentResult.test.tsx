@@ -38,7 +38,7 @@ describe("PaymentResult", () => {
   it("PayOS chưa xác nhận: 'Đang xác nhận thanh toán' (03.10)", () => {
     renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status: "pending", payment_status: "pending" })} />);
     expect(screen.getByRole("heading", { level: 1, name: "Đang xác nhận thanh toán" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Thử lại" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Thanh toán lại" })).not.toBeInTheDocument();
   });
 
   it.each(["cod", "payos"] as const)("%s: đơn còn processing → 'Đơn hàng đang được xử lý', tự cập nhật, chưa nói đã đặt hay đang xác nhận", (method) => {
@@ -57,18 +57,26 @@ describe("PaymentResult", () => {
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
   });
 
-  it("thất bại: 'Thanh toán chưa hoàn tất' có nút Thử lại thay cho Tiếp tục mua sắm (03.11)", () => {
-    renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status: "failed", payment_status: "failed" })} />);
+  it("PayOS huỷ giữa chừng (đơn còn pending): có nút Thanh toán lại thay cho Tiếp tục mua sắm (03.11)", () => {
+    renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status: "pending", payment_status: "failed" })} />);
     expect(screen.getByRole("heading", { level: 1, name: "Thanh toán chưa hoàn tất" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Thử lại" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Thanh toán lại" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Đặt lại" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Tiếp tục mua sắm" })).not.toBeInTheDocument();
   });
 
-  it("bấm Thử lại khi chưa tạo được link mới thì báo lỗi, không rời trang", async () => {
+  it.each(["cancelled", "failed"] as const)("đơn %s (hết hạn giữ hàng): không thanh toán lại được, chỉ có Đặt lại về giỏ hàng", (status) => {
+    renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status, payment_status: "failed" })} />);
+    expect(screen.getByRole("heading", { level: 1, name: "Thanh toán chưa hoàn tất" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Thanh toán lại" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Đặt lại" })).toHaveAttribute("href", "/cart");
+  });
+
+  it("bấm Thanh toán lại khi chưa tạo được link mới thì báo lỗi, không rời trang", async () => {
     mockRetry.mockResolvedValue({ ok: false, message: "Chưa tạo được link thanh toán mới. Vui lòng thử lại sau." });
     const user = setupUser();
-    renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status: "failed", payment_status: "failed" })} />);
-    await user.click(screen.getByRole("button", { name: "Thử lại" }));
+    renderWithAntd(<PaymentResult order={order({ payment_method: "payos", status: "pending", payment_status: "failed" })} />);
+    await user.click(screen.getByRole("button", { name: "Thanh toán lại" }));
     expect(mockRetry).toHaveBeenCalledWith({ orderId: ID });
     expect(await screen.findByText("Chưa tạo được link thanh toán mới. Vui lòng thử lại sau.")).toBeInTheDocument();
   });

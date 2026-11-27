@@ -15,3 +15,11 @@ export function paymentResultOf(order: Pick<MyOrderSummary, "status" | "payment_
   }
   return "pending";
 }
+
+/**
+ * "Thanh toán lại" chỉ khi đơn còn `pending` (backend chỉ tạo giao dịch cho đơn `pending`, BR-08) mà giao dịch PayOS đã
+ * thất bại hoặc bị huỷ. Đơn đã `cancelled`/`failed` (hết hạn giữ hàng) thì không còn hàng giữ cho đơn: phải đặt lại.
+ */
+export function canRetryPayment(order: Pick<MyOrderSummary, "status" | "payment_method" | "payment_status">): boolean {
+  return order.status === "pending" && order.payment_method !== "cod" && order.payment_status === "failed";
+}

@@ -14,7 +14,6 @@ import { ApiError } from "@/lib/api/http";
 import { requirePermission } from "@/lib/auth/guards";
 import type { ActionResult } from "@/types/action";
 import { readPaymentContext, writePaymentContext } from "./payment-context";
-import { paymentResultOf } from "./payment-result";
 import { SHIPPING_FEE } from "./pricing";
 import { placeOrderSchema, retryPaymentSchema, startPaymentSchema } from "./schemas";
 
@@ -95,8 +94,9 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
 }
 
 /**
- * FDD 5.1.2 — "Thử lại" ở trang kết quả (Figma 03.11): xin backend link thanh toán PayOS mới cho đơn của chính
- * người dùng. Không áp dụng cho đơn COD / đơn chưa ở trạng thái thất bại; backend kiểm lại lần nữa.
+ * FDD 5.1.2 — "Thanh toán lại" ở trang kết quả (Figma 03.11): xin backend link PayOS mới cho đơn CÒN `pending` của chính
+ * người dùng. Backend dùng lại giao dịch `failed` với mã PayOS mới (BR-08) và kiểm lại lần nữa (409 nếu giao dịch chưa
+ * thất bại). Đơn đã huỷ/hết hạn giữ hàng thì không thanh toán lại được, phải đặt lại.
  */
 export async function retryPayment(input: unknown): Promise<ActionResult<{ redirectTo: string }>> {
   await requirePermission("order:own");
@@ -105,14 +105,22 @@ export async function retryPayment(input: unknown): Promise<ActionResult<{ redir
 
   const order = await orderService.getMine(parsed.data.orderId);
   if (!order) return { ok: false, message: "Không tìm thấy đơn hàng" };
-  if (order.payment_method === "cod" || paymentResultOf(order) !== "failed") {
+  if (order.status === "paid" || order.status === "shipped") {
+    return { ok: false, message: "Đơn hàng này không cần thanh toán lại" };
+  }
+  if (order.status !== "pending") {
+    return { ok: false, message: "Đơn hàng không còn chờ thanh toán. Vui lòng đặt lại." };
+  }
+  const context = await readPaymentContext();
+  if (context?.orderId === order.id && context.method === "cod") {
     return { ok: false, message: "Đơn hàng này không cần thanh toán lại" };
   }
 
   try {
-    const { checkout_url } = await orderService.retryPayment(order.id);
-    if (!checkout_url) return { ok: false, message: "Chưa tạo được link thanh toán mới. Vui lòng thử lại sau." };
-    return { ok: true, data: { redirectTo: checkout_url } };
+    const payment = await orderService.createPayment(order.id, "payos");
+    await writePaymentContext({ orderId: order.id, paymentId: payment.id, method: "payos" });
+    if (!payment.checkout_url) return { ok: false, message: "Chưa tạo được link thanh toán mới. Vui lòng thử lại sau." };
+    return { ok: true, data: { redirectTo: payment.checkout_url } };
   } catch (err) {
     return failed(err);
   }

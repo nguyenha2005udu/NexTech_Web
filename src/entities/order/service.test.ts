@@ -204,7 +204,7 @@ describe("orderService — đọc đơn", () => {
   });
 });
 
-describe("orderService — huỷ và thanh toán lại", () => {
+describe("orderService — huỷ đơn", () => {
   it("cancel gọi PUT /api/orders/:id/cancel", async () => {
     fetchMock.mockResolvedValue({ id: "o-1", status: "cancelled" });
     await orderService.cancel("o-1");
@@ -215,12 +215,6 @@ describe("orderService — huỷ và thanh toán lại", () => {
     fetchMock.mockRejectedValue(new ApiError(400, "Không huỷ được", "NT-ORD-1008"));
     await expect(orderService.cancel("o-1")).rejects.toMatchObject({ code: "NT-ORD-1008" });
   });
-
-  it("retryPayment xin link PayOS mới", async () => {
-    fetchMock.mockResolvedValue({ id: "pay-2", payment_url: "https://pay.payos.vn/new" });
-    expect(await orderService.retryPayment("o-1")).toEqual({ checkout_url: "https://pay.payos.vn/new" });
-    expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ body: { order_id: "o-1", method: "payos" } });
-  });
 });
 
 describe("orderService.createPayment", () => {
@@ -228,6 +222,11 @@ describe("orderService.createPayment", () => {
     backend({ "POST /api/payments": { id: "pay-3", payment_url: "https://pay.payos.vn/x" } });
     expect(await orderService.createPayment("o-1", "payos")).toEqual({ id: "pay-3", checkout_url: "https://pay.payos.vn/x" });
     expect(calls()[0]).toEqual(["/api/payments", expect.objectContaining({ method: "POST", body: { order_id: "o-1", method: "payos" } })]);
+  });
+
+  it("thanh toán lại PayOS gọi cùng API: backend dùng lại giao dịch failed, trả cùng id", async () => {
+    backend({ "POST /api/payments": { id: "pay-2", payment_url: "https://pay.payos.vn/new" } });
+    expect(await orderService.createPayment("o-1", "payos")).toEqual({ id: "pay-2", checkout_url: "https://pay.payos.vn/new" });
   });
 
   it("COD: không có link", async () => {

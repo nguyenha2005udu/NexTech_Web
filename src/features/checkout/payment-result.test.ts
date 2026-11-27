@@ -1,5 +1,5 @@
 import type { MyOrderSummary } from "@/entities/order";
-import { paymentResultOf } from "./payment-result";
+import { canRetryPayment, paymentResultOf } from "./payment-result";
 
 const order = (override: Partial<MyOrderSummary>): MyOrderSummary => ({
   id: "o-1",
@@ -49,5 +49,23 @@ describe("paymentResultOf", () => {
     ["COD bị huỷ", { payment_method: "cod" as const, status: "cancelled" as const, payment_status: null }],
   ])("%s → 'Thanh toán chưa hoàn tất' (03.11)", (_label, override) => {
     expect(paymentResultOf(order(override))).toBe("failed");
+  });
+});
+
+describe("canRetryPayment", () => {
+  it("PayOS: đơn còn pending mà giao dịch thất bại (kể cả huỷ ở PayOS) → được thanh toán lại", () => {
+    expect(canRetryPayment(order({ status: "pending", payment_status: "failed" }))).toBe(true);
+    expect(canRetryPayment(order({ status: "pending", payment_method: null, payment_status: "failed" }))).toBe(true);
+  });
+
+  it.each([
+    ["đơn đã huỷ (hết hạn giữ hàng)", { status: "cancelled" as const, payment_status: "failed" as const }],
+    ["đơn thất bại", { status: "failed" as const, payment_status: "failed" as const }],
+    ["giao dịch còn chờ", { status: "pending" as const, payment_status: "pending" as const }],
+    ["đã thanh toán", { status: "paid" as const, payment_status: "success" as const }],
+    ["COD", { payment_method: "cod" as const, payment_status: "failed" as const }],
+    ["đơn đang xử lý", { status: "processing" as const, payment_status: "failed" as const }],
+  ])("%s → không", (_label, override) => {
+    expect(canRetryPayment(order(override))).toBe(false);
   });
 });

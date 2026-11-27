@@ -8,7 +8,7 @@ import { routes } from "@/config/routes";
 import type { MyOrderSummary } from "@/entities/order";
 import type { PaymentMethod } from "@/entities/transaction";
 import { formatOrderCode, formatVND } from "@/lib/format";
-import { paymentResultOf, type PaymentResultKind } from "../payment-result";
+import { canRetryPayment, paymentResultOf, type PaymentResultKind } from "../payment-result";
 import { PaymentStarter } from "./PaymentStarter";
 import { ProcessingRefresh } from "./ProcessingRefresh";
 import { RetryPaymentButton } from "./RetryPaymentButton";
@@ -33,7 +33,7 @@ function leadOf(kind: PaymentResultKind, total: string, code: string): string {
     case "pending":
       return "NexTech đang kiểm tra giao dịch. Bạn có thể xem trạng thái mới nhất trong Chi tiết đơn hàng.";
     case "failed":
-      return "Giao dịch chưa được xác nhận. Bạn có thể kiểm tra đơn hoặc thử thanh toán lại.";
+      return "Giao dịch chưa được xác nhận. Bạn có thể kiểm tra trạng thái đơn hàng.";
     case "processing":
       return `NexTech đang giữ hàng và xác nhận đơn ${code}. Trang sẽ tự cập nhật khi xong.`;
   }
@@ -80,8 +80,13 @@ export function PaymentResult({ order, needsPayment = null }: Props) {
           <Link href={routes.orderDetail(order.id)} className={styles.primary}>
             <ArrowRightIcon /> Xem đơn hàng
           </Link>
-          {kind === "failed" ? (
+          {canRetryPayment(order) ? (
             <RetryPaymentButton orderId={order.id} />
+          ) : kind === "failed" ? (
+            // Đơn đã huỷ / hết hạn giữ hàng: không thanh toán lại được, hàng trong giỏ vẫn còn để đặt lại.
+            <Link href={routes.cart} className={styles.secondary}>
+              Đặt lại
+            </Link>
           ) : (
             <Link href={routes.home} className={styles.secondary}>
               Tiếp tục mua sắm
