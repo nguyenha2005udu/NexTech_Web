@@ -3,8 +3,7 @@
 // Lớp bảo vệ 2 (mục 10.3): requirePermission trước khi lấy dữ liệu; đơn của người khác → 404. Trang riêng tư → noindex.
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { orderService } from "@/entities/order/service";
-import { PaymentResult } from "@/features/checkout";
+import { PaymentResult, loadPaymentResult } from "@/features/checkout";
 import { requirePermission } from "@/lib/auth/guards";
 
 type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
@@ -14,19 +13,15 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value);
+
 export default async function Page({ searchParams }: Props) {
   await requirePermission("order:own");
 
-  const raw = (await searchParams).orderCode;
-  const orderCode = (Array.isArray(raw) ? raw[0] : raw)?.trim();
-  if (!orderCode) notFound();
-
-  const order = await orderService.getMine(orderCode);
+  // `orderCode` do PayOS gắn là mã số của PayOS, không phải id đơn — loadPaymentResult xử lý (đơn/giao dịch lấy từ cookie).
+  const sp = await searchParams;
+  const order = await loadPaymentResult({ orderCode: first(sp.orderCode), method: first(sp.method) });
   if (!order) notFound();
 
-  // `?method=` chỉ là gợi ý hiển thị phương thức (backend chưa trả ở API đơn); trạng thái luôn lấy từ backend.
-  const hint = (await searchParams).method;
-  const method = hint === "cod" || hint === "payos" ? hint : null;
-
-  return <PaymentResult order={{ ...order, payment_method: order.payment_method ?? method }} />;
+  return <PaymentResult order={order} />;
 }

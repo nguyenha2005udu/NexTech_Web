@@ -58,6 +58,11 @@ interface RawPayment {
   id: string;
   payment_url: string | null;
 }
+interface RawPaymentStatus {
+  id: string;
+  status: PaymentStatus;
+  paid_at: string | null;
+}
 
 const LIST_LIMIT = 100;
 
@@ -69,6 +74,8 @@ export function paymentStatusOf(status: OrderStatus): PaymentStatus {
 }
 
 const isMissing = (err: unknown) => err instanceof ApiError && (err.status === 404 || err.status === 400);
+/** Giao dịch của người khác (403 NT-PAY-1007) hay không có / sai định dạng id đều coi như "không có" với người gọi. */
+const isNotMine = (err: unknown) => isMissing(err) || (err instanceof ApiError && err.status === 403);
 
 function toDetail(raw: RawOrderDetail): MyOrderDetail {
   return {
@@ -140,10 +147,13 @@ export const orderService = {
     });
 
     let checkoutUrl: string | null = null;
+    let paymentId: string | null = null;
     // 202: đơn còn `processing` (saga chưa xong) → chưa tạo thanh toán được, trang kết quả sẽ hiện "đang xử lý".
     if (order.status === "pending") {
       try {
-        checkoutUrl = (await requestPayment(order.id, input.payment_method)).payment_url;
+        const payment = await requestPayment(order.id, input.payment_method);
+        checkoutUrl = payment.payment_url;
+        paymentId = payment.id;
       } catch (err) {
         // Đơn đã tạo: không báo lỗi đặt hàng. Người dùng xem kết quả và thử lại thanh toán ở đó.
         if (!(err instanceof ApiError)) throw err;
@@ -154,6 +164,7 @@ export const orderService = {
       status: order.status,
       total: Number(order.total ?? 0),
       payment_method: input.payment_method,
+      payment_id: paymentId,
       checkout_url: input.payment_method === "payos" ? checkoutUrl : null,
     };
   },
@@ -162,6 +173,20 @@ export const orderService = {
   async retryPayment(id: string): Promise<{ checkout_url: string | null }> {
     const payment = await requestPayment(id, "payos");
     return { checkout_url: payment.payment_url };
+  },
+
+  /**
+   * Trạng thái giao dịch (`GET /api/payments/:id/status`). Giao dịch PayOS còn `pending` thì backend CHỦ ĐỘNG hỏi PayOS
+   * rồi đồng bộ đơn (webhook không gọi được vào localhost) — nên gọi trước khi đọc đơn. `null` khi giao dịch không
+   * thuộc người đang đăng nhập hoặc không tồn tại.
+   */
+  async getPaymentStatus(paymentId: string): Promise<PaymentStatus | null> {
+    try {
+      return (await apiFetch<RawPaymentStatus>(`/api/payments/${encodeURIComponent(paymentId)}/status`)).status;
+    } catch (err) {
+      if (isNotMine(err)) return null;
+      throw err;
+    }
   },
 
   /** Trạng thái đơn cho trang kết quả. `null` khi không có đơn hoặc đơn không thuộc người đang đăng nhập. */

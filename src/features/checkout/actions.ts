@@ -13,6 +13,7 @@ import { failed, invalid } from "@/lib/action-result";
 import { ApiError } from "@/lib/api/http";
 import { requirePermission } from "@/lib/auth/guards";
 import type { ActionResult } from "@/types/action";
+import { writePaymentContext } from "./payment-context";
 import { paymentResultOf } from "./payment-result";
 import { SHIPPING_FEE } from "./pricing";
 import { placeOrderSchema, retryPaymentSchema } from "./schemas";
@@ -77,6 +78,8 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
       freeship_code: freeshipCode,
       payment_method: paymentMethod,
     });
+    // PayOS đưa khách về trang kết quả mà không mang theo id đơn/giao dịch → nhớ lại ở đây (xem payment-context.ts).
+    await writePaymentContext({ orderId: order.id, paymentId: order.payment_id, method: paymentMethod });
     return {
       ok: true,
       data: {
