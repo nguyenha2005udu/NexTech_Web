@@ -55,6 +55,20 @@ export function serializeProductFilters(filters: ProductFilters): URLSearchParam
   return sp;
 }
 
+/** Số sản phẩm mỗi trang kết quả tìm kiếm (chia hết cho 3 cột của lưới). */
+export const SEARCH_PAGE_SIZE = 24;
+
+/**
+ * Link tới trang `page` của kết quả với đúng bộ lọc hiện tại. Trang 1 bỏ `?page=` để URL gọn và trùng link gốc.
+ * Đổi bộ lọc/sắp xếp (useProductFilters) dựng URL từ `serializeProductFilters` nên tự bỏ `page` → về trang 1.
+ */
+export function searchHref(basePath: string, filters: ProductFilters, page: number): string {
+  const sp = serializeProductFilters(filters);
+  if (page > 1) sp.set("page", String(page));
+  const query = sp.toString();
+  return query ? `${basePath}?${query}` : basePath;
+}
+
 function normalize(text: string): string {
   return text.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
 }

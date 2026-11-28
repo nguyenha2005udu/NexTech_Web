@@ -247,3 +247,61 @@
     flex-wrap: wrap;
   }
 }
+
+/* ===== Phân trang kết quả tìm kiếm ===== */
+.pager {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.pagerList {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pagerList a,
+.pagerCurrent,
+.pagerGap {
+  display: inline-grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.pagerLink {
+  font-weight: 700;
+  color: var(--c-primary-text);
+}
+
+.pagerList a:hover {
+  background: var(--c-primary-soft);
+}
+
+.pagerCurrent {
+  font-weight: 700;
+  color: #fff;
+  background: var(--c-primary);
+}
+
+.pagerGap {
+  color: var(--c-ink-muted);
+}
+
+.pagerDisabled {
+  font-weight: 700;
+  color: var(--c-ink-muted);
+  opacity: 0.5;
+}

@@ -1,9 +1,11 @@
 import { makeFilters, makeProduct } from "@/lib/test-utils";
 import {
+  SEARCH_PAGE_SIZE,
   applyProductFilters,
   getFilterFacets,
   hasActiveFilters,
   parseProductFilters,
+  searchHref,
   serializeProductFilters,
 } from "./filters";
 
@@ -135,5 +137,31 @@ describe("hasActiveFilters", () => {
     ["giá tối đa", { max: 1 }],
   ])("bật khi có điều kiện %s", (_label, override) => {
     expect(hasActiveFilters(makeFilters(override))).toBe(true);
+  });
+});
+
+describe("searchHref", () => {
+  it("trang 1 bỏ ?page= để trùng link gốc", () => {
+    expect(searchHref("/search", makeFilters({ q: "laptop" }), 1)).toBe("/search?q=laptop");
+    expect(searchHref("/search", makeFilters(), 1)).toBe("/search");
+  });
+
+  it("trang > 1 thêm ?page= và giữ nguyên từ khoá, bộ lọc, sắp xếp", () => {
+    const filters = makeFilters({ q: "laptop", brands: ["ASUS", "Dell"], min: 100, max: 900, sort: "price-asc" });
+    const sp = new URL(searchHref("/search", filters, 3), "http://x").searchParams;
+    expect(sp.get("q")).toBe("laptop");
+    expect(sp.get("brand")).toBe("ASUS,Dell");
+    expect(sp.get("min")).toBe("100");
+    expect(sp.get("max")).toBe("900");
+    expect(sp.get("sort")).toBe("price-asc");
+    expect(sp.get("page")).toBe("3");
+  });
+
+  it("không có bộ lọc nào: chỉ ?page=", () => {
+    expect(searchHref("/search", makeFilters(), 2)).toBe("/search?page=2");
+  });
+
+  it("kích thước trang chia hết cho 3 cột của lưới", () => {
+    expect(SEARCH_PAGE_SIZE % 3).toBe(0);
   });
 });
