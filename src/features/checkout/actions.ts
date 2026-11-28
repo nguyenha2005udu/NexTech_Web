@@ -15,7 +15,7 @@ import { requirePermission } from "@/lib/auth/guards";
 import type { CartProduct } from "@/features/cart";
 import type { ActionResult } from "@/types/action";
 import { readPaymentContext, writePaymentContext } from "./payment-context";
-import { SHIPPING_FEE } from "./pricing";
+import { shippingFeeFor } from "./pricing";
 import { placeOrderSchema, reorderSchema, retryPaymentSchema, startPaymentSchema } from "./schemas";
 
 export type PlaceOrderResult = {
@@ -56,7 +56,7 @@ export async function placeOrder(input: unknown): Promise<ActionResult<PlaceOrde
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.quantity, 0);
   try {
     for (const code of couponCodes) {
-      const check = await couponService.validate(code, subtotal, SHIPPING_FEE);
+      const check = await couponService.validate(code, subtotal, shippingFeeFor(subtotal));
       if (!check.valid) return { ok: false, message: check.message, fieldErrors: { couponCodes: check.message } };
       const isFreeship = check.category === "free_shipping";
       if (isFreeship ? freeshipCode : discountCode) {

@@ -153,7 +153,13 @@ describe("placeOrder — tạo đơn", () => {
 
   it("thử mã với tạm tính tính lại từ giá thật, bỏ qua giá client", async () => {
     await placeOrder({ ...validInput, items: [{ productId: "p-asus", quantity: 2, price: 1 }], couponCodes: ["nex200"] });
-    expect(mockValidate).toHaveBeenCalledWith("NEX200", 29_980_000, 30_000);
+    expect(mockValidate).toHaveBeenCalledWith("NEX200", 29_980_000, 0); // đơn từ 500.000 ₫ miễn phí ship
+  });
+
+  it("đơn dưới 500.000 ₫: gửi phí ship 30.000 ₫ khi kiểm mã", async () => {
+    mockProducts.mockResolvedValue([makeProduct({ id: "p-cable", name: "Cáp sạc", price: 200_000, inStock: true })]);
+    await placeOrder({ ...validInput, items: [{ productId: "p-cable", quantity: 1 }], couponCodes: ["nex200"] });
+    expect(mockValidate).toHaveBeenCalledWith("NEX200", 200_000, 30_000);
   });
 
   it("mã freeship được gửi vào ô freeship_code", async () => {

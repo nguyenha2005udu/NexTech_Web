@@ -55,19 +55,28 @@ function renderCheckout({
 const summary = () => within(screen.getByRole("complementary", { name: "Tóm tắt đơn hàng" }));
 
 describe("CheckoutView — hiển thị", () => {
-  it("chỉ lấy các dòng đang chọn trong giỏ, tổng = tạm tính + phí vận chuyển", () => {
+  it("chỉ lấy các dòng đang chọn trong giỏ; đơn từ 500.000 ₫ được miễn phí vận chuyển (BR-04)", () => {
     renderCheckout();
     expect(screen.getByText("ASUS Vivobook 15")).toBeInTheDocument();
     expect(screen.queryByText("Lenovo IdeaPad Slim 5")).not.toBeInTheDocument();
+    expect(summary().getByText("Miễn phí")).toBeInTheDocument();
+    expect(summary().queryByText("30.000 ₫")).not.toBeInTheDocument();
+    expect(summary().getAllByText("14.990.000 ₫")).toHaveLength(2); // tạm tính và tổng cộng
+  });
+
+  it("đơn dưới 500.000 ₫ thu 30.000 ₫ phí vận chuyển: tổng = tạm tính + phí", () => {
+    renderCheckout({ cart: [makeCartItem({ productId: "p-cable", name: "Cáp sạc", price: 200_000 })] });
     expect(summary().getByText("30.000 ₫")).toBeInTheDocument();
-    expect(summary().getByText("15.020.000 ₫")).toBeInTheDocument();
+    expect(summary().getByText("230.000 ₫")).toBeInTheDocument();
+    expect(summary().queryByText("Miễn phí")).not.toBeInTheDocument();
   });
 
   it("'Mua ngay' bỏ qua giỏ, chỉ đặt sản phẩm được truyền vào", () => {
     renderCheckout({ buyNow: { productId: "p-acer", name: "Acer Aspire 5", summary: "Core i5", price: 13_490_000, quantity: 2 } });
     expect(screen.getByText("Acer Aspire 5")).toBeInTheDocument();
     expect(screen.queryByText("ASUS Vivobook 15")).not.toBeInTheDocument();
-    expect(summary().getByText("26.980.000 ₫")).toBeInTheDocument();
+    expect(summary().getAllByText("26.980.000 ₫")).toHaveLength(2); // tạm tính = tổng cộng vì được miễn phí ship
+    expect(summary().getByText("Miễn phí")).toBeInTheDocument();
   });
 
   it("chưa chọn sản phẩm nào thì mời quay lại giỏ", () => {
@@ -111,14 +120,14 @@ describe("CheckoutView — hộp thoại", () => {
     expect(within(dialog).getByRole("radio", { name: /Nhà riêng/ })).toBeChecked();
   });
 
-  it("chọn mã NEX200 thì giảm 200.000 ₫ (03.06 → tổng 14.820.000 ₫)", async () => {
+  it("chọn mã NEX200 thì giảm 200.000 ₫ (đơn laptop đã miễn phí ship → tổng 14.790.000 ₫)", async () => {
     const { user } = renderCheckout();
     await user.click(screen.getByRole("button", { name: "Chọn mã" }));
     const dialog = await screen.findByRole("dialog", { name: "Chọn mã giảm giá" });
     await user.click(within(dialog).getByRole("radio", { name: /NEX200/ }));
     await user.click(within(dialog).getByRole("button", { name: "Xác nhận" }));
     expect(await screen.findByText("Đã áp dụng giảm 200.000 ₫")).toBeInTheDocument();
-    expect(summary().getByText("14.820.000 ₫")).toBeInTheDocument();
+    expect(summary().getByText("14.790.000 ₫")).toBeInTheDocument();
   });
 
   it("mã chưa đủ điều kiện bị khoá và hiện lý do", async () => {
