@@ -20,8 +20,11 @@ export function PriceAlertButton({ productId, productName, price }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Đóng hộp thoại (đặt xong, hoặc bấm Hủy/✕) thì xoá luôn giá đã nhập: state nằm ở nút nên không tự mất khi Modal
+  // huỷ nội dung. Nếu giữ lại, mở lần sau thấy giá cũ và gõ thêm bị nối vào ("150.000" + "140000").
   function close() {
     setOpen(false);
+    setTarget(null);
     setError(null);
   }
 
