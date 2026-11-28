@@ -7,9 +7,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { routes } from "@/config/routes";
-import { siteConfig } from "@/config/site";
 import { categoryService } from "@/entities/category/service";
-import type { Product } from "@/entities/product";
+import { productJsonLd, productMetaDescription } from "@/entities/product";
 import { productService } from "@/entities/product/service";
 import { orFallbackAtBuild } from "@/lib/build-safe";
 import { PurchaseActions } from "@/features/cart";
@@ -32,33 +31,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const product = await productService.getBySlug(slug);
   if (!product) return {};
   // Ảnh chia sẻ lấy từ ./opengraph-image.tsx (PNG 1200×630), không đặt openGraph.images ở đây.
+  // Backend có thể không có mô tả: productMetaDescription luôn trả câu hợp lệ (không để trang thiếu <meta description>).
+  const description = productMetaDescription(product);
   return {
     title: product.name,
-    description: product.headline,
+    description,
     alternates: { canonical: routes.product(slug) },
-    openGraph: { title: product.name, description: product.headline, url: routes.product(slug) },
-  };
-}
-
-const absolute = (path: string) => new URL(path, siteConfig.url).toString();
-
-function productJsonLd(product: Product): Record<string, unknown> {
-  return {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: product.headline,
-    sku: product.id,
-    brand: { "@type": "Brand", name: product.brand },
-    image: product.images.map((i) => absolute(i.src)),
-    aggregateRating: { "@type": "AggregateRating", ratingValue: product.rating, reviewCount: product.reviewCount },
-    offers: {
-      "@type": "Offer",
-      url: absolute(routes.product(product.slug)),
-      priceCurrency: "VND",
-      price: product.price,
-      availability: product.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-    },
+    openGraph: { title: product.name, description, url: routes.product(slug) },
   };
 }
 

@@ -10,6 +10,7 @@ export {
   serializeProductFilters,
 } from "./filters";
 export type { FilterFacets, RawSearchParams } from "./filters";
+export { META_DESCRIPTION_MAX, productDescription, productJsonLd, productMetaDescription, truncateDescription } from "./seo";
 // Khu quản trị (FDD 7.2). Service ở server: import từ "@/entities/product/admin-service".
 export type {
   AdminProductDetail,
