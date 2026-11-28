@@ -28,7 +28,7 @@ export function OrderSummary({ pricing, paymentMethod, disabled, submitting, onS
         </div>
         <div className={styles.summaryRow}>
           <dt>Phí vận chuyển</dt>
-          <dd>{formatVND(pricing.shippingFee)}</dd>
+          <dd>{pricing.shippingFee === 0 && pricing.subtotal > 0 ? "Miễn phí" : formatVND(pricing.shippingFee)}</dd>
         </div>
         <div className={styles.summaryRow}>
           <dt>Giảm giá</dt>

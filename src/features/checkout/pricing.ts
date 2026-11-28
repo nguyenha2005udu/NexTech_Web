@@ -4,8 +4,18 @@
 import type { Coupon } from "@/entities/coupon";
 import { formatVND } from "@/lib/format";
 
-/** Phí vận chuyển cố định (Figma 03.04). TODO(backend): lấy theo địa chỉ khi có API vận chuyển. */
+/**
+ * Phí vận chuyển và ngưỡng miễn phí: khớp mặc định của order-service (SHIPPING_FEE, FREE_SHIPPING_THRESHOLD, BR-04).
+ * Chỉ để HIỂN THỊ trước khi đặt; số tiền thật do backend tính lúc đặt đơn. Backend đổi cấu hình thì sửa ở đây.
+ * TODO(backend): lấy từ API cấu hình / theo địa chỉ khi có.
+ */
 export const SHIPPING_FEE = 30_000;
+export const FREE_SHIPPING_THRESHOLD = 500_000;
+
+/** BR-04: tạm tính (trước giảm giá) từ ngưỡng trở lên thì miễn phí vận chuyển; đơn rỗng không có phí. */
+export function shippingFeeFor(subtotal: number): number {
+  return subtotal <= 0 || subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+}
 
 export interface PricingLine {
   price: number;
@@ -50,7 +60,7 @@ function discountOn(coupon: Coupon, base: number): number {
 /** `coupons`: tối đa 1 mã giảm đơn + 1 mã freeship (backend cho dùng đồng thời); mã lỗi đầu tiên được báo. */
 export function priceOrder(lines: readonly PricingLine[], coupons: readonly Coupon[], now: Date): OrderPricing {
   const subtotal = subtotalOf(lines);
-  const shippingFee = lines.length ? SHIPPING_FEE : 0;
+  const shippingFee = lines.length ? shippingFeeFor(subtotal) : 0;
   const couponError = coupons.map((c) => couponProblem(c, subtotal, now)).find((p) => p !== null) ?? null;
 
   let discount = 0;
