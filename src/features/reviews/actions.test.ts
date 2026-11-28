@@ -107,10 +107,28 @@ describe("createReview", () => {
     });
   });
 
-  it("đã đánh giá rồi (403 NT-CAT-1007 từ backend) thì trả nguyên thông báo, không làm mới trang", async () => {
+  it("đã đánh giá rồi (403 NT-CAT-1007): trả thông báo của backend kèm dấu hiệu 'alreadyReviewed', không làm mới trang", async () => {
     mockCreate.mockRejectedValue(new ApiError(403, "Bạn đã đánh giá sản phẩm này rồi", "NT-CAT-1007"));
-    expect(await createReview(valid)).toEqual({ ok: false, message: "Bạn đã đánh giá sản phẩm này rồi" });
+    expect(await createReview(valid)).toEqual({
+      ok: false,
+      message: "Bạn đã đánh giá sản phẩm này rồi",
+      fieldErrors: { alreadyReviewed: "Bạn đã đánh giá sản phẩm này rồi" },
+    });
     expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("chưa mua sản phẩm (403 NT-CAT-1006): lỗi chung của hộp thoại", async () => {
+    mockCreate.mockRejectedValue(new ApiError(403, "Bạn cần mua sản phẩm này trước khi đánh giá", "NT-CAT-1006"));
+    expect(await createReview(valid)).toEqual({
+      ok: false,
+      message: "Bạn cần mua sản phẩm này trước khi đánh giá",
+      fieldErrors: { form: "Bạn cần mua sản phẩm này trước khi đánh giá" },
+    });
+  });
+
+  it("lỗi backend khác chỉ trả thông báo", async () => {
+    mockCreate.mockRejectedValue(new ApiError(503, "Không kết nối được máy chủ", "NT-GEN-0503"));
+    expect(await createReview(valid)).toEqual({ ok: false, message: "Không kết nối được máy chủ" });
   });
 
   it("ghi đánh giá, cắt khoảng trắng thừa, rồi làm mới trang sản phẩm và chi tiết đơn", async () => {

@@ -11,6 +11,7 @@ import { reviewService } from "@/entities/review/service";
 import { failed, invalid } from "@/lib/action-result";
 import { requirePermission } from "@/lib/auth/guards";
 import type { ActionResult } from "@/types/action";
+import { ALREADY_REVIEWED_FIELD, REVIEW_ERROR } from "./review-errors";
 import { canReview } from "./review.rules";
 import { createReviewSchema } from "./schemas";
 
@@ -33,6 +34,8 @@ export async function createReview(input: unknown): Promise<ActionResult<{ revie
     revalidatePath(routes.orderDetail(orderId));
     return { ok: true, data: { reviewId: review.id } };
   } catch (err) {
-    return failed(err);
+    // NT-CAT-1007: đã đánh giá sản phẩm này rồi → client đổi nút thành "Đã đánh giá". NT-CAT-1006: chưa mua (đơn chưa
+    // hoàn tất) → lỗi chung trong hộp thoại.
+    return failed(err, { [REVIEW_ERROR.ALREADY_REVIEWED]: ALREADY_REVIEWED_FIELD, [REVIEW_ERROR.NOT_PURCHASED]: "form" });
   }
 }

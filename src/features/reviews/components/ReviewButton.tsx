@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { App, Button, Input, Modal, Rate } from "antd";
 import { REVIEW_CONTENT_MAX } from "@/entities/review";
 import { createReview } from "../actions";
+import { ALREADY_REVIEWED_FIELD } from "../review-errors";
 import styles from "./Review.module.css";
 
 type Props = { orderId: string; productId: string; productName: string };
@@ -17,6 +18,7 @@ export function ReviewButton({ orderId, productId, productName }: Props) {
   const [rating, setRating] = useState(0);
   const [content, setContent] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [reviewed, setReviewed] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function close() {
@@ -28,14 +30,26 @@ export function ReviewButton({ orderId, productId, productName }: Props) {
     startTransition(async () => {
       const result = await createReview({ orderId, productId, rating, content });
       if (!result.ok) {
+        if (result.fieldErrors?.[ALREADY_REVIEWED_FIELD]) {
+          // Đã đánh giá từ trước (backend chưa có API cho biết trước): đổi nút, không bắt viết lại.
+          message.info(result.message);
+          close();
+          setReviewed(true);
+          return;
+        }
         setErrors(result.fieldErrors ?? { form: result.message });
         return;
       }
       message.success("Cảm ơn bạn đã đánh giá sản phẩm");
       close();
+      setReviewed(true);
       router.refresh();
     });
   }
+
+  // Nút trong chi tiết đơn không biết sản phẩm đã được đánh giá chưa (backend không có API): sau khi viết xong
+  // (hoặc backend báo đã đánh giá) thì thay bằng nhãn, tránh mở lại hộp thoại còn nguyên nội dung cũ.
+  if (reviewed) return <span className={styles.reviewed}>Đã đánh giá</span>;
 
   return (
     <>
