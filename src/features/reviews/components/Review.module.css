@@ -15,3 +15,9 @@
   line-height: 20px;
   color: var(--c-price);
 }
+
+/* Nhãn thay cho nút "Viết đánh giá" sau khi đã đánh giá */
+.reviewed {
+  font-size: 13px;
+  color: var(--c-ink-muted);
+}
