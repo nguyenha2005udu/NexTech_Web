@@ -1,0 +1,11 @@
+/* Trang ngắn (giỏ trống, tìm kiếm ít kết quả…) vẫn đẩy footer xuống đáy màn hình. */
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+.content {
+  flex: 1 0 auto;
+}

@@ -38,6 +38,13 @@ body {
   color: var(--c-ink);
   background: var(--c-page);
   -webkit-font-smoothing: antialiased;
+  caret-color: var(--c-primary);
+  accent-color: var(--c-primary);
+}
+
+::selection {
+  background: var(--c-primary-soft-border);
+  color: var(--c-ink);
 }
 
 h1,
@@ -46,10 +53,12 @@ h3 {
   margin: 0;
   font-family: var(--font-heading), var(--font-body), sans-serif;
   color: var(--c-ink);
+  text-wrap: balance;
 }
 
 p {
   margin: 0;
+  text-wrap: pretty;
 }
 
 a {

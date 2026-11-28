@@ -15,9 +15,12 @@ export async function ReviewSummary({ productId, rating, reviewCount }: Props) {
   return (
     <div className={styles.summary}>
       <h3 className={styles.title}>Đánh giá từ người mua</h3>
-      <p className={styles.score}>
-        {formatRating(rating)} / 5 · {reviewCount} đánh giá
-      </p>
+      {/* Chưa có ai chấm thì "0,0 / 5" chỉ gây hiểu nhầm — câu "Chưa có đánh giá nào…" bên dưới đã đủ */}
+      {reviewCount > 0 ? (
+        <p className={styles.score}>
+          {formatRating(rating)} / 5 · {reviewCount} đánh giá
+        </p>
+      ) : null}
       {items.length ? (
         <>
           <ul className={styles.list}>

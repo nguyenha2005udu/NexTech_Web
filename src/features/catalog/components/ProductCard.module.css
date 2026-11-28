@@ -34,6 +34,10 @@
   object-fit: contain;
 }
 
+.placeholder {
+  color: #b4bac8;
+}
+
 .tag {
   position: absolute;
   top: 8px;
@@ -54,13 +58,17 @@
   padding: 13px 15px;
 }
 
+/* Tên dài xuống tối đa 2 dòng; luôn giữ chỗ 2 dòng để giá các thẻ cùng hàng thẳng nhau. */
 .name {
+  display: -webkit-box;
+  min-height: 46px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: 15px;
   font-weight: 700;
   line-height: 23px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .summary {
@@ -80,6 +88,7 @@
 }
 
 .price {
+  font-variant-numeric: tabular-nums;
   font-size: 17px;
   font-weight: 800;
   line-height: 26px;
@@ -112,5 +121,10 @@
 @media (max-width: 479px) {
   .grid {
     --cols: 1 !important;
+  }
+
+  /* 1 cột thì không cần giữ chỗ 2 dòng để thẳng hàng với thẻ bên cạnh */
+  .name {
+    min-height: 0;
   }
 }

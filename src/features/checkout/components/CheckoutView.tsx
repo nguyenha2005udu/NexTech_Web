@@ -132,7 +132,7 @@ export function CheckoutView({ addresses, coupons, buyNow }: Props) {
                 <div>
                   <p className={styles.strong}>{l.name}</p>
                   <p className={styles.muted}>
-                    {l.summary} · SL {l.quantity}
+                    {[l.summary, `SL ${l.quantity}`].filter(Boolean).join(" · ")}
                   </p>
                 </div>
                 <span className={styles.price}>{formatVND(l.price * l.quantity)}</span>

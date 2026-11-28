@@ -30,6 +30,12 @@ export function FilterPanel({ facets }: { facets: FilterFacets }) {
     setMax(filters.max ?? null);
   }
 
+  // Chưa lọc gì thì "Xóa lọc" không có tác dụng → ẩn đi cho đỡ nhiễu.
+  const hasActiveFilter =
+    filters.brands.length + filters.rams.length + filters.cpus.length > 0 ||
+    filters.min !== undefined ||
+    filters.max !== undefined;
+
   const [brandGroup, ...specGroups] = GROUPS;
   const renderGroup = (group: (typeof GROUPS)[number]) => {
     const options = facets[group.facet];
@@ -55,9 +61,11 @@ export function FilterPanel({ facets }: { facets: FilterFacets }) {
     <aside className={styles.sidebar} aria-label="Bộ lọc sản phẩm">
       <div className={styles.sidebarHeader}>
         <h2 className={styles.sidebarTitle}>Bộ lọc</h2>
-        <button type="button" className={styles.clear} onClick={clearFilters}>
-          Xóa lọc
-        </button>
+        {hasActiveFilter ? (
+          <button type="button" className={styles.clear} onClick={clearFilters}>
+            Xóa lọc
+          </button>
+        ) : null}
       </div>
 
       {brandGroup ? renderGroup(brandGroup) : null}

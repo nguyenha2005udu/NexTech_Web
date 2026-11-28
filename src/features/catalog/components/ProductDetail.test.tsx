@@ -35,6 +35,11 @@ describe("ProductDetailTabs", () => {
     await user.click(screen.getByRole("tab", { name: "Mô tả" }));
     expect(await screen.findByText("Nội dung mô tả đang được cập nhật.")).toBeInTheDocument();
   });
+
+  it("chưa có thông số thì báo đang cập nhật thay vì để trống", () => {
+    renderWithAntd(<ProductDetailTabs specs={[]} reviewCount={0} reviews={null} />);
+    expect(screen.getByText("Thông số kỹ thuật đang được cập nhật.")).toBeInTheDocument();
+  });
 });
 
 describe("ProductGallery", () => {
@@ -59,9 +64,10 @@ describe("ProductGallery", () => {
     expect(screen.getByRole("img", { name: "Mặt bên" })).toBeInTheDocument();
   });
 
-  it("không có ảnh nào vẫn render được", () => {
+  it("không có ảnh nào vẫn render được, có ô báo chưa có ảnh", () => {
     render(<ProductGallery images={[]} />);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText("Chưa có ảnh sản phẩm")).toBeInTheDocument();
   });
 });
 
@@ -74,6 +80,12 @@ describe("ProductOverview", () => {
     expect(screen.getByText("14.990.000 ₫")).toBeInTheDocument();
     expect(screen.getByText("12 đánh giá")).toBeInTheDocument();
     expect(screen.getByText("Còn hàng")).toBeInTheDocument();
+  });
+
+  it("chưa có đánh giá thì ghi 'Chưa có đánh giá' thay vì điểm 0", () => {
+    render(<ProductOverview product={{ ...product, rating: 0, reviewCount: 0 }} />);
+    expect(screen.getByText("Chưa có đánh giá")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Đánh giá .* trên 5$/)).not.toBeInTheDocument();
   });
 
   it("hết hàng thì ghi 'Hết hàng'", () => {

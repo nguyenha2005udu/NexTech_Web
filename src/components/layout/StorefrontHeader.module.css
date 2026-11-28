@@ -442,4 +442,22 @@
     font-size: 0;
     gap: 0;
   }
+
+  /* "Sản phẩm" không có icon: thu chữ về 0 thì thành link vô hình nhưng vẫn nhận Tab → ẩn hẳn.
+     Ô tìm kiếm ngay bên dưới đã dẫn tới trang sản phẩm. */
+  .homeActions .textLink {
+    display: none;
+  }
+
+  .homeActions {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 479px) {
+  .accountButton {
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 12px;
+  }
 }

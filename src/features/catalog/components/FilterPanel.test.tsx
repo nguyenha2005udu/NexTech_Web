@@ -93,4 +93,10 @@ describe("FilterPanel", () => {
     await user.click(screen.getByRole("button", { name: "Xóa lọc" }));
     expect(lastQuery()).toEqual({ q: "laptop", sort: "rating" });
   });
+
+  it("ẩn 'Xóa lọc' khi chưa có điều kiện lọc nào (chỉ có từ khoá, sắp xếp)", () => {
+    currentSearch = "q=laptop&sort=rating";
+    renderWithAntd(<FilterPanel facets={facets} />);
+    expect(screen.queryByRole("button", { name: "Xóa lọc" })).not.toBeInTheDocument();
+  });
 });
