@@ -112,4 +112,108 @@ describe("productService", () => {
   it("getManyByIds với danh sách rỗng trả mảng rỗng", async () => {
     expect(await productService.getManyByIds([])).toEqual([]);
   });
+
+  describe("search — phân trang", () => {
+    /** Backend giả: `total` sản phẩm, tuân theo ?page= và ?limit= (tối đa 100/trang như thật). */
+    function fakeBackend(total: number, brandOf: (i: number) => string = () => "NexTech") {
+      fetchMock.mockImplementation(async (path: string) => {
+        const q = new URL(path, "http://x").searchParams;
+        const page = Number(q.get("page") ?? 1);
+        const limit = Math.min(Number(q.get("limit") ?? 20), 100);
+        const start = (page - 1) * limit;
+        const items = Array.from({ length: Math.max(0, Math.min(limit, total - start)) }, (_, k) =>
+          rawItem({ id: `p${start + k + 1}`, brand: brandOf(start + k) }),
+        );
+        return { items, total, page, limit, totalPages: Math.ceil(total / limit) };
+      });
+    }
+
+    it("không cần lọc phía web: nhờ backend cắt trang (page, limit=24) và lấy total của backend", async () => {
+      fakeBackend(161);
+      const result = await productService.search(baseFilters, 3);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const q = new URL(String(fetchMock.mock.calls[0]?.[0]), "http://x").searchParams;
+      expect(q.get("page")).toBe("3");
+      expect(q.get("limit")).toBe("24");
+      expect(result).toMatchObject({ total: 161, page: 3, totalPages: 7 });
+      expect(result.items).toHaveLength(24);
+      expect(result.items[0]?.id).toBe("p49");
+    });
+
+    it("trang cuối chỉ có phần dư", async () => {
+      fakeBackend(161);
+      const result = await productService.search(baseFilters, 7);
+      expect(result.items).toHaveLength(161 - 6 * 24);
+      expect(result.totalPages).toBe(7);
+    });
+
+    it("trang vượt quá số trang: items rỗng nhưng vẫn báo đúng total và totalPages để trang tự về trang cuối", async () => {
+      fakeBackend(161);
+      const result = await productService.search(baseFilters, 99);
+      expect(result).toMatchObject({ items: [], total: 161, totalPages: 7 });
+    });
+
+    it("không có kết quả vẫn có 1 trang", async () => {
+      fakeBackend(0);
+      expect(await productService.search(baseFilters)).toMatchObject({ items: [], total: 0, totalPages: 1 });
+    });
+
+    it("một hãng + khoảng giá vẫn do backend lọc và phân trang (không lấy hết)", async () => {
+      fakeBackend(50);
+      await productService.search({ ...baseFilters, brands: ["NexTech"], min: 100 }, 2);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const q = new URL(String(fetchMock.mock.calls[0]?.[0]), "http://x").searchParams;
+      expect(q.get("brand")).toBe("NexTech");
+      expect(q.get("minPrice")).toBe("100");
+    });
+
+    it("nhiều hãng: lấy HẾT các trang của backend, lọc ở web, total là số SAU lọc rồi mới cắt trang", async () => {
+      // 161 sản phẩm, hãng xoay vòng A, B, C → mỗi hãng ~54 sản phẩm
+      fakeBackend(161, (i) => ["A", "B", "C"][i % 3]!);
+      const result = await productService.search({ ...baseFilters, brands: ["A", "B"] }, 1);
+      expect(fetchMock).toHaveBeenCalledTimes(2); // 2 trang × 100 của backend
+      const expectedTotal = 54 + 54; // A: i%3==0 → 54, B: i%3==1 → 54 (i từ 0..160)
+      expect(result.total).toBe(expectedTotal);
+      expect(result.totalPages).toBe(Math.ceil(expectedTotal / 24));
+      expect(result.items).toHaveLength(24);
+      expect(result.items.every((p) => ["A", "B"].includes(p.brand))).toBe(true);
+    });
+
+    it("nhiều hãng: trang 2 là phần kế tiếp của danh sách đã lọc, không trùng trang 1", async () => {
+      fakeBackend(161, (i) => ["A", "B", "C"][i % 3]!);
+      const page1 = await productService.search({ ...baseFilters, brands: ["A", "B"] }, 1);
+      const page2 = await productService.search({ ...baseFilters, brands: ["A", "B"] }, 2);
+      const ids1 = new Set(page1.items.map((p) => p.id));
+      expect(page2.items.some((p) => ids1.has(p.id))).toBe(false);
+      expect(page2.page).toBe(2);
+    });
+
+    it("lọc RAM/CPU (backend chưa hỗ trợ): total là số sau lọc, không phải tổng 161 của backend", async () => {
+      fakeBackend(161);
+      const result = await productService.search({ ...baseFilters, rams: ["16 GB"] });
+      expect(result).toMatchObject({ items: [], total: 0, totalPages: 1 });
+    });
+
+    it("lấy hết tối đa 20 trang, không lặp vô hạn khi backend báo total khổng lồ", async () => {
+      fetchMock.mockImplementation(async (path: string) => {
+        const page = Number(new URL(path, "http://x").searchParams.get("page") ?? 1);
+        return { items: [rawItem({ id: `p${page}` })], total: 999_999, page, limit: 100, totalPages: 9_999 };
+      });
+      await productService.search({ ...baseFilters, brands: ["A", "B"] });
+      expect(fetchMock.mock.calls.length).toBeLessThanOrEqual(20);
+    });
+  });
+
+  describe("listAll", () => {
+    it("lấy mọi trang (không cụt ở 100 sản phẩm đầu) để dựng bộ lọc hãng", async () => {
+      fetchMock.mockImplementation(async (path: string) => {
+        const page = Number(new URL(path, "http://x").searchParams.get("page") ?? 1);
+        const items = page === 1 ? Array.from({ length: 100 }, (_, i) => rawItem({ id: `a${i}` })) : [rawItem({ id: "z1", brand: "Nubia" })];
+        return { items, total: 101, page, limit: 100, totalPages: 2 };
+      });
+      const all = await productService.listAll();
+      expect(all).toHaveLength(101);
+      expect(all.at(-1)?.brand).toBe("Nubia");
+    });
+  });
 });

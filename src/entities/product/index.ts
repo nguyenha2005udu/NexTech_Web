@@ -1,10 +1,12 @@
 export type { Product, ProductFilters, ProductImage, ProductSort, ProductSpec, ProductTag } from "./types";
 export {
+  SEARCH_PAGE_SIZE,
   SORT_OPTIONS,
   applyProductFilters,
   getFilterFacets,
   hasActiveFilters,
   parseProductFilters,
+  searchHref,
   serializeProductFilters,
 } from "./filters";
 export type { FilterFacets, RawSearchParams } from "./filters";

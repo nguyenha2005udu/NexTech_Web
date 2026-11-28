@@ -2,7 +2,7 @@ import "server-only";
 import { ApiError, apiFetchPublic } from "@/lib/api/http";
 import { toQueryString } from "@/lib/api/query-string";
 import type { Paginated } from "@/types/api";
-import { applyProductFilters } from "./filters";
+import { SEARCH_PAGE_SIZE, applyProductFilters } from "./filters";
 import type { Product, ProductFilters, ProductSort, ProductTag } from "./types";
 
 // FDD 2.x — Sản phẩm phía khách. Gọi `GET /api/products[/:id]` của catalog-service (công khai, ISR 60 s).
@@ -10,6 +10,8 @@ import type { Product, ProductFilters, ProductSort, ProductTag } from "./types";
 
 const REVALIDATE = 60;
 const PAGE_LIMIT = 100;
+/** Chặn vòng lặp lấy hết sản phẩm: tối đa 20 trang × 100 = 2.000 sản phẩm. */
+const MAX_PAGES = 20;
 const TAGS: readonly ProductTag[] = ["Học tập", "Văn phòng", "Gaming", "Phụ kiện"];
 
 interface RawTag {
@@ -114,6 +116,23 @@ async function list(query: Record<string, string | number | undefined>): Promise
   return { ...page, items: page.items.map(fromListItem) };
 }
 
+/** Lấy HẾT các trang của một truy vấn (backend tối đa 100 sản phẩm/trang). */
+async function listEvery(query: Record<string, string | number | undefined>): Promise<Paginated<Product>> {
+  const first = await list({ ...query, page: 1 });
+  const pages = Math.min(first.totalPages || Math.ceil(first.total / PAGE_LIMIT), MAX_PAGES);
+  const rest = await Promise.all(Array.from({ length: Math.max(pages - 1, 0) }, (_, i) => list({ ...query, page: i + 2 })));
+  return { ...first, items: [...first.items, ...rest.flatMap((p) => p.items)] };
+}
+
+export interface SearchResult {
+  /** Sản phẩm của trang hiện tại */
+  items: Product[];
+  /** Tổng số sản phẩm khớp (mọi trang, sau mọi bộ lọc) */
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
 async function fetchDetail(id: string, revalidate: number): Promise<Product | null> {
   try {
     return fromDetail(await apiFetchPublic<RawDetail>(`/api/products/${encodeURIComponent(id)}`, revalidate));
@@ -143,18 +162,35 @@ export const productService = {
     }
   },
 
-  async search(filters: ProductFilters): Promise<{ items: Product[]; total: number }> {
-    const page = await list({
+  /** Toàn bộ sản phẩm (mọi trang) — để dựng danh sách hãng/thông số cho bộ lọc, không bị cụt ở 100 sản phẩm đầu. */
+  async listAll(): Promise<Product[]> {
+    return (await listEvery({})).items;
+  },
+
+  /**
+   * Tìm kiếm có phân trang (FDD 2.2). Backend lọc từ khoá, MỘT hãng, khoảng giá, sắp xếp và phân trang. Nhiều hãng hoặc
+   * RAM/CPU backend chưa lọc được: khi đó lấy hết kết quả của backend, lọc ở web rồi mới cắt trang, để `total` và số
+   * trang phản ánh đúng kết quả SAU lọc (không phải tổng của backend).
+   */
+  async search(filters: ProductFilters, page = 1, pageSize = SEARCH_PAGE_SIZE): Promise<SearchResult> {
+    const query = {
       search: filters.q,
-      // Backend chỉ lọc 1 hãng; nhiều hãng thì lọc tiếp ở dưới.
       brand: filters.brands.length === 1 ? filters.brands[0] : undefined,
       minPrice: filters.min,
       maxPrice: filters.max,
       sort: SORT_TO_BACKEND[filters.sort],
-    });
-    // Backend chưa có lọc RAM/CPU → lọc phía web trên kết quả đã lấy.
-    const items = applyProductFilters(page.items, { ...filters, q: undefined, min: undefined, max: undefined });
-    return { items, total: page.total };
+    };
+    const needsLocalFilter = filters.brands.length > 1 || filters.rams.length > 0 || filters.cpus.length > 0;
+    const totalPagesOf = (total: number) => Math.max(1, Math.ceil(total / pageSize));
+
+    if (!needsLocalFilter) {
+      const res = await list({ ...query, page, limit: pageSize });
+      return { items: res.items, total: res.total, page, totalPages: totalPagesOf(res.total) };
+    }
+    const all = await listEvery(query);
+    const filtered = applyProductFilters(all.items, { ...filters, q: undefined, min: undefined, max: undefined });
+    const start = (page - 1) * pageSize;
+    return { items: filtered.slice(start, start + pageSize), total: filtered.length, page, totalPages: totalPagesOf(filtered.length) };
   },
 
   getBySlug: (slug: string) => fetchDetail(slug, REVALIDATE),
