@@ -7,21 +7,17 @@ import { Button, Form } from "antd";
 import { routes } from "@/config/routes";
 import { zodRule } from "@/lib/zod-rule";
 import { loginWithEmail } from "../actions";
+import { safeCallbackUrl } from "../callback-url";
 import { useAuthAction } from "../hooks/useAuthAction";
 import { emailSchema, loginPasswordSchema, type LoginInput } from "../schemas";
 import { EmailInput, PasswordInput } from "./fields";
 import styles from "./auth.module.css";
 
-/** Chỉ quay lại đường dẫn nội bộ, chặn open redirect (`//evil.com`, `https://...`). */
-function safeCallback(value: string | null): string {
-  return value?.startsWith("/") && !value.startsWith("//") ? value : routes.home;
-}
-
 export function LoginForm() {
   const [form] = Form.useForm<LoginInput>();
   const { pending, run } = useAuthAction(form);
   const router = useRouter();
-  const callbackUrl = safeCallback(useSearchParams().get("callbackUrl"));
+  const callbackUrl = safeCallbackUrl(useSearchParams().get("callbackUrl"));
 
   return (
     <Form
