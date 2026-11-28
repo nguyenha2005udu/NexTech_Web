@@ -62,6 +62,36 @@ describe("PriceAlertButton", () => {
     expect(await screen.findByRole("link", { name: "Xem cảnh báo giá" })).toHaveAttribute("href", "/account/price-alerts");
   });
 
+  it("đặt xong rồi mở lại thì ô giá trống, không còn giá cũ để gõ nối vào", async () => {
+    mockCreate.mockResolvedValue({ ok: true, data: { alertId: "al-1" } });
+    const { user, dialog } = await openDialog();
+    await user.type(within(dialog).getByRole("spinbutton", { name: "Giá mục tiêu (₫)" }), "13000000");
+    await user.click(within(dialog).getByRole("button", { name: "Đặt cảnh báo" }));
+    await screen.findByRole("link", { name: "Xem cảnh báo giá" });
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cảnh báo giá" })).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /Theo dõi giá/ }));
+    const reopened = await screen.findByRole("dialog", { name: "Cảnh báo giá" });
+    const input = within(reopened).getByRole("spinbutton", { name: "Giá mục tiêu (₫)" });
+    expect(input).toHaveValue("");
+    await user.type(input, "12000000");
+    expect(input).toHaveValue("12.000.000");
+  });
+
+  it("bấm Hủy rồi mở lại thì ô giá và thông báo lỗi đều được xoá", async () => {
+    const { user, dialog } = await openDialog();
+    await user.type(within(dialog).getByRole("spinbutton", { name: "Giá mục tiêu (₫)" }), "15000000");
+    await user.click(within(dialog).getByRole("button", { name: "Đặt cảnh báo" }));
+    expect(await within(dialog).findByRole("alert")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Hủy" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Cảnh báo giá" })).not.toBeInTheDocument());
+
+    await user.click(screen.getByRole("button", { name: /Theo dõi giá/ }));
+    const reopened = await screen.findByRole("dialog", { name: "Cảnh báo giá" });
+    expect(within(reopened).getByRole("spinbutton", { name: "Giá mục tiêu (₫)" })).toHaveValue("");
+    expect(within(reopened).queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("server từ chối thì hiện lý do và giữ hộp thoại mở", async () => {
     mockCreate.mockResolvedValue({ ok: false, message: "Bạn chỉ theo dõi được tối đa 20 sản phẩm" });
     const { user, dialog } = await openDialog();
