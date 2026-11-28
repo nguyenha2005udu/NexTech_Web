@@ -17,7 +17,8 @@ export default function NotFound() {
         title="Không tìm thấy trang"
         subtitle="Đường dẫn không tồn tại hoặc nội dung đã bị gỡ. Hãy quay lại trang chủ để tiếp tục mua sắm."
       />
-      <AuthFooter href={routes.home} linkLabel="Về trang chủ" />
+      {/* "Về trang chủ" đã có ở AuthHeading — chân trang gợi ý hướng khác thay vì lặp lại */}
+      <AuthFooter text="Đang tìm một sản phẩm?" href={routes.search} linkLabel="Xem tất cả sản phẩm" />
     </AuthShell>
   );
 }

@@ -104,3 +104,11 @@
   line-height: 20px;
   color: var(--c-price);
 }
+
+/* Chữ xanh mặc định của Tag antd chỉ đạt ~3.6:1 trên nền xanh nhạt → dùng cùng cặp màu với nhãn "Còn hàng" (đạt AA). */
+.triggered:global(.ant-tag) {
+  border-color: #b7e4cf;
+  background: #e7f7f0;
+  color: #036c4b;
+  font-weight: 700;
+}

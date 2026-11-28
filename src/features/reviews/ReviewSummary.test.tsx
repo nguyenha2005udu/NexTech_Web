@@ -69,6 +69,12 @@ describe("ReviewSummary", () => {
     expect(screen.getByText("Chưa có đánh giá nào cho sản phẩm này.")).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
   });
+
+  it("chưa có lượt đánh giá thì không hiện điểm '0,0 / 5'", async () => {
+    mockList.mockResolvedValue(pageOf([]));
+    await renderSummary({ productId: "p-1", rating: 0, reviewCount: 0 });
+    expect(screen.queryByText(/\/ 5/)).not.toBeInTheDocument();
+  });
 });
 
 describe("ReviewSummarySkeleton", () => {

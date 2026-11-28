@@ -15,7 +15,7 @@ type Props = {
 };
 
 export function ProductDetailTabs({ specs, description, reviewCount, reviews }: Props) {
-  const specTable = (
+  const specTable = specs.length ? (
     <dl className={styles.specs}>
       {specs.map((s) => (
         <div key={s.label} className={styles.specRow}>
@@ -24,6 +24,8 @@ export function ProductDetailTabs({ specs, description, reviewCount, reviews }: 
         </div>
       ))}
     </dl>
+  ) : (
+    <p className={styles.emptyTab}>Thông số kỹ thuật đang được cập nhật.</p>
   );
 
   return (
@@ -44,7 +46,11 @@ export function ProductDetailTabs({ specs, description, reviewCount, reviews }: 
           {
             key: "description",
             label: "Mô tả",
-            children: <p className={styles.description}>{description ?? "Nội dung mô tả đang được cập nhật."}</p>,
+            children: description ? (
+              <p className={styles.description}>{description}</p>
+            ) : (
+              <p className={styles.emptyTab}>Nội dung mô tả đang được cập nhật.</p>
+            ),
           },
           { key: "reviews", label: `Đánh giá (${reviewCount})`, children: reviews },
         ]}

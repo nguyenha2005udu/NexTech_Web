@@ -3,6 +3,7 @@
 // FDD 2.3 — Ảnh sản phẩm + thumbnail (Figma 01.05)
 import { useState } from "react";
 import Image from "next/image";
+import { ImageIcon } from "@/components/ui/icons";
 import type { ProductImage } from "@/entities/product";
 import styles from "./ProductDetail.module.css";
 
@@ -13,7 +14,14 @@ export function ProductGallery({ images }: { images: ProductImage[] }) {
   return (
     <div className={styles.gallery}>
       <div className={styles.mainImage}>
-        {current ? <Image src={current.src} alt={current.alt} width={554} height={327} priority className={styles.mainImg} /> : null}
+        {current ? (
+          <Image src={current.src} alt={current.alt} width={554} height={327} priority className={styles.mainImg} />
+        ) : (
+          <span className={styles.noImage}>
+            <ImageIcon size={40} />
+            Chưa có ảnh sản phẩm
+          </span>
+        )}
       </div>
       {images.length > 1 ? (
         <div className={styles.thumbs} role="group" aria-label="Chọn ảnh sản phẩm">

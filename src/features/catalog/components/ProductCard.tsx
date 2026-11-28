@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ImageIcon } from "@/components/ui/icons";
 import { routes } from "@/config/routes";
 import type { Product } from "@/entities/product";
 import { formatVND } from "@/lib/format";
@@ -15,7 +16,9 @@ export function ProductCard({ product, priority = false }: { product: Product; p
         <div className={styles.media}>
           {image ? (
             <Image src={image.src} alt={image.alt} width={288} height={141} className={styles.image} priority={priority} />
-          ) : null}
+          ) : (
+            <ImageIcon size={32} className={styles.placeholder} />
+          )}
           <span className={styles.tag}>{product.tag}</span>
         </div>
         <div className={styles.body}>
@@ -23,7 +26,8 @@ export function ProductCard({ product, priority = false }: { product: Product; p
           <p className={styles.summary}>{product.summary}</p>
           <div className={styles.meta}>
             <span className={styles.price}>{formatVND(product.price)}</span>
-            <Rating value={product.rating} />
+            {/* Chưa có đánh giá (điểm 0) thì không hiện "★ 0,0" — dễ hiểu nhầm là bị chấm thấp */}
+            {product.rating > 0 ? <Rating value={product.rating} /> : null}
           </div>
         </div>
       </Link>

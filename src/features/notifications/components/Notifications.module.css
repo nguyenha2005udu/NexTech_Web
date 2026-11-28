@@ -63,8 +63,9 @@
   background: var(--c-surface);
 }
 
+/* Chưa đọc: nền cam nhạt + viền cam nhạt. Viền cam đậm trên cả danh sách dài trông như báo lỗi. */
 .unread {
-  border-color: var(--c-primary);
+  border-color: var(--c-primary-soft-border);
   background: var(--c-primary-soft);
 }
 

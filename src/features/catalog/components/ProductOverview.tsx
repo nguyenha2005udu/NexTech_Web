@@ -19,10 +19,17 @@ export function ProductOverview({ product, purchase, priceAlert }: Props) {
       <span className={product.inStock ? styles.stockIn : styles.stockOut}>{product.inStock ? "Còn hàng" : "Hết hàng"}</span>
       <h1 className={styles.name}>{product.name}</h1>
       <div className={styles.ratingRow}>
-        <Rating value={product.rating} />
-        <span className={styles.muted}>{product.reviewCount} đánh giá</span>
+        {product.reviewCount > 0 ? (
+          <>
+            <Rating value={product.rating} />
+            <span className={styles.muted}>{product.reviewCount} đánh giá</span>
+          </>
+        ) : (
+          <span className={styles.muted}>Chưa có đánh giá</span>
+        )}
       </div>
-      <p className={styles.headline}>{product.headline}</p>
+      {/* Không có mô tả ngắn thì bỏ hẳn đoạn này — thẻ <p> rỗng vẫn chiếm 1 khoảng gap */}
+      {product.headline ? <p className={styles.headline}>{product.headline}</p> : null}
       <p className={styles.price}>{formatVND(product.price)}</p>
       {purchase}
       {priceAlert ? <div>{priceAlert}</div> : null}

@@ -40,6 +40,11 @@ describe("ProductCard", () => {
   });
 });
 
+it("sản phẩm chưa được chấm điểm thì không hiện '★ 0,0'", () => {
+  render(<ProductCard product={{ ...product, rating: 0 }} />);
+  expect(screen.queryByLabelText(/trên 5$/)).not.toBeInTheDocument();
+});
+
 describe("Rating", () => {
   it("định dạng số thập phân kiểu Việt Nam", () => {
     render(<Rating value={4} />);

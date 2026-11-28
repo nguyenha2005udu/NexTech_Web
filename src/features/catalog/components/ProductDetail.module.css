@@ -41,6 +41,20 @@
   object-fit: contain;
 }
 
+.noImage {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--c-ink-muted);
+}
+
+.noImage svg {
+  color: #b4bac8;
+}
+
 .thumbs {
   display: flex;
   gap: 12px;
@@ -134,6 +148,7 @@
 }
 
 .price {
+  font-variant-numeric: tabular-nums;
   font-size: 31px;
   font-weight: 800;
   line-height: 47px;
@@ -184,6 +199,13 @@
   margin: 0;
   font-weight: 800;
   text-align: right;
+}
+
+.emptyTab {
+  padding: 15px 0;
+  font-size: 15px;
+  line-height: 24px;
+  color: var(--c-ink-muted);
 }
 
 .description {

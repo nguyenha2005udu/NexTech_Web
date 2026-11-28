@@ -24,22 +24,28 @@
   font-size: 16px;
 }
 
+/* Số đứng giữa 2 nút −/+ cao 43px: cùng chiều cao, chữ to vừa đủ đọc nhanh */
 .quantity {
-  min-width: 28px;
-  padding: 5px 10px;
-  border-radius: 7px;
-  background: var(--c-chip);
-  font-size: 13px;
+  min-width: 36px;
+  font-size: 16px;
   font-weight: 800;
-  line-height: 20px;
+  font-variant-numeric: tabular-nums;
+  line-height: 43px;
   text-align: center;
-  color: var(--c-chip-text);
+  color: var(--c-ink);
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+}
+
+/* Điện thoại: 2 nút chia đều bề ngang, dễ bấm bằng ngón cái */
+@media (max-width: 575px) {
+  .actions > * {
+    flex: 1 1 0;
+  }
 }
 
 .outOfStock {
